@@ -6,6 +6,7 @@ namespace XRL.World.Parts {
     using Qud.API;
     using XRL.World.CleverGirl;
     using XRL.World.Anatomy;
+    using XRL.UI;
 
     [Serializable]
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
@@ -28,6 +29,13 @@ namespace XRL.World.Parts {
             Display = "disable gear {{inventoryhotkey|p}}ickup",
             Command = "CleverGirl_DisableGearPickup",
             Key = 'p',
+            Valid = e => e.Object.PartyLeader == The.Player && e.Object.HasPart(typeof(CleverGirl_AIPickupGear)),
+        };
+        public static readonly Utility.InventoryAction ACTION = new Utility.InventoryAction {
+            Name = "Clever Girl - Manage Gear Pickup",
+            Display = "manage gear pickup",
+            Command = "CleverGirl_ManageGearPickup",
+            Key = 'E',
             Valid = e => e.Object.PartyLeader == The.Player && e.Object.HasPart(typeof(CleverGirl_AIPickupGear)),
         };
         public static readonly Utility.InventoryAction FOLLOWER_ENABLE = new Utility.InventoryAction {
@@ -198,6 +206,48 @@ namespace XRL.World.Parts {
             public override int Compare(GameObject x, GameObject y) {
                 return Brain.CompareShields(x, y, POV) * (Reverse ? -1 : 1);
             }
+        }
+        private HashSet<BodyPart> IgnoredBodyParts = new HashSet<BodyPart>();
+
+        /// <summary>
+        /// Handle the interactive menu for managing companion auto-equip on a per-BodyPart basis.
+        /// </summary>
+        /// <returns>
+        /// boolean flag to indicate that energy was spent talking with companion (true), or not (false)
+        /// </returns>
+        public bool Manage() {
+            Utility.MaybeLog("Managing auto-equip for " + ParentObject.DisplayNameOnlyStripped);
+
+            var allBodyParts = ParentObject.Body.GetParts();
+            var optionNames = new List<string>(allBodyParts.Count);
+
+            // Create pretty menu options that show equipped items on the right
+            foreach (var part in allBodyParts) {
+                optionNames.Add(part.Name + " : " + part.Equipped?.ShortDisplayName ?? "[empty]");
+            }
+
+
+            // Pop up a menu for the player to checklist body parts
+            var chosenBodyPartIndices = Popup.PickSeveral(Options: optionNames.ToArray(),
+                                                          Intro: "What body parts is " + ParentObject.the + ParentObject.ShortDisplayName + " allowed to auto-equip?",
+                                                          AllowEscape: true);
+            // User cancelled, abort!
+            if (chosenBodyPartIndices == null) {
+                Utility.MaybeLog("User aborted!");
+                return false;
+            }
+
+            // TODO:
+            //// Evaluate whether any change was actually made in menu selection
+            //if (chosenBodyPartIndices.Count == IgnoredBodyParts.Count) {
+            //    foreach (var index in chosenBodyPartIndices) {
+            //        if (IgnoredBodyParts.Contains(allBodyParts[chosenBodyPartIndices[index]]) == false) {
+            //            return true;
+            //        }
+            //    }
+            //}
+            Utility.MaybeLog("Auto-equip menu finished");
+            return true;
         }
     }
 }

@@ -24,6 +24,7 @@ namespace XRL.World.Parts {
                 var actions = new List<Utility.InventoryAction>{
                         CleverGirl_AIPickupGear.ENABLE,
                         CleverGirl_AIPickupGear.DISABLE,
+                        CleverGirl_AIPickupGear.ACTION,
                         CleverGirl_AIPickupGear.FOLLOWER_ENABLE,
                         CleverGirl_AIPickupGear.FOLLOWER_DISABLE,
                         CleverGirl_AIManageSkills.ACTION,
@@ -52,6 +53,12 @@ namespace XRL.World.Parts {
                 E.Item.RemovePart<CleverGirl_AIPickupGear>();
                 E.Item.RemovePart<CleverGirl_AIUnburden>();
                 ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Gear Pickup");
+            }
+            if (E.Command == CleverGirl_AIPickupGear.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().Manage()) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Pickup");
+                }
+                E.RequestInterfaceExit();
             }
             if (E.Command == CleverGirl_AIPickupGear.FOLLOWER_ENABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 foreach (var follower in Utility.CollectFollowersOf(E.Item)) {
