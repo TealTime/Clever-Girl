@@ -39,6 +39,9 @@ namespace XRL.World.CleverGirl {
             var effects = new List<string>();
             var icons = new List<IRenderable>();
             var companionList = new List<GameObject>();
+            /// <summary>
+            /// Gather and store important properties/fields from all player companions recursively, to eventually be dumped as menu options.
+            /// </summary>
             void HarvestFields(IEnumerable<GameObject> Companions, string IndentString = "") {
                 foreach (var companion in Companions) {
                     companionList.Add(companion);
@@ -70,6 +73,7 @@ namespace XRL.World.CleverGirl {
 
             var selected = Utility.ShowTabularPopup("Companions", new List<List<string>>() { names, status, effects }, new List<int> { 30, 20, 20 }, icons, The.Player.pRender);
             if (selected != -1) {
+                // Interact with companion, if possible
                 _ = companionList[selected].Twiddle();
             }
         }

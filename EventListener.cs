@@ -22,11 +22,7 @@ namespace XRL.World.Parts {
                     return true;
                 }
                 var actions = new List<Utility.InventoryAction>{
-                        CleverGirl_AIPickupGear.ENABLE,
-                        CleverGirl_AIPickupGear.DISABLE,
                         CleverGirl_AIPickupGear.ACTION,
-                        CleverGirl_AIPickupGear.FOLLOWER_ENABLE,
-                        CleverGirl_AIPickupGear.FOLLOWER_DISABLE,
                         CleverGirl_AIManageSkills.ACTION,
                         CleverGirl_AIManageMutations.ACTION,
                         CleverGirl_AIManageAttributes.ACTION,
@@ -43,37 +39,11 @@ namespace XRL.World.Parts {
         }
 
         public override bool HandleEvent(InventoryActionEvent E) {
-            if (E.Command == CleverGirl_AIPickupGear.ENABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                _ = E.Item.RequirePart<CleverGirl_AIPickupGear>();
-                // Anyone picking up gear should know how to unburden themself
-                _ = E.Item.RequirePart<CleverGirl_AIUnburden>();
-                ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Gear Pickup");
-            }
-            if (E.Command == CleverGirl_AIPickupGear.DISABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                E.Item.RemovePart<CleverGirl_AIPickupGear>();
-                E.Item.RemovePart<CleverGirl_AIUnburden>();
-                ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Gear Pickup");
-            }
             if (E.Command == CleverGirl_AIPickupGear.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().Manage()) {
+                if (CleverGirl_AIPickupGear.Manage()) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Pickup");
                 }
                 E.RequestInterfaceExit();
-            }
-            if (E.Command == CleverGirl_AIPickupGear.FOLLOWER_ENABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                foreach (var follower in Utility.CollectFollowersOf(E.Item)) {
-                    _ = follower.RequirePart<CleverGirl_AIPickupGear>();
-                    // Anyone picking up gear should know how to unburden themself
-                    _ = follower.RequirePart<CleverGirl_AIUnburden>();
-                }
-                ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Follower Gear Pickup");
-            }
-            if (E.Command == CleverGirl_AIPickupGear.FOLLOWER_DISABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                foreach (var follower in Utility.CollectFollowersOf(E.Item)) {
-                    follower.RemovePart<CleverGirl_AIPickupGear>();
-                    follower.RemovePart<CleverGirl_AIUnburden>();
-                }
-                ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Follower Gear Pickup");
             }
             if (E.Command == CleverGirl_AIManageSkills.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIManageSkills>().Manage()) {
