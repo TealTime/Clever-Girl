@@ -10,6 +10,7 @@ namespace XRL.World.CleverGirl {
     using XRL.UI;
     using XRL.World.Parts;
     using XRL.World.Anatomy;
+    using XRL.World.CleverGirl.BackwardsCompatibility;
 
     public static class ManageGear {
         public static readonly Utility.InventoryAction ACTION = new Utility.InventoryAction {
@@ -227,7 +228,7 @@ namespace XRL.World.CleverGirl {
                                 Popup.Show(Companion.The + Companion.ShortDisplayName + " can't switch primary limbs in combat.");
                             } else if (relevantBodyParts[selectedIndex].Abstract) {
                                 Popup.Show("This body part cannot be set as " + Companion.its + " primary.");
-                            } else if (!CheckPreferredPrimary(relevantBodyParts[selectedIndex])) {
+                            } else if (!CleverGirl_BackwardsCompatibility.IsPreferredPrimary(relevantBodyParts[selectedIndex])) {
                                 relevantBodyParts[selectedIndex].SetAsPreferredDefault();
                                 Changed = true;
                             }
@@ -312,27 +313,6 @@ namespace XRL.World.CleverGirl {
         private enum ScreenTab {
             Equipment = 0,
             Cybernetics = 1,
-        }
-
-        /// <summary>
-        /// BodyPart had a typo in one of its field names. The devs fixed this typo in [2.0.204.65].
-        /// This functions serves as a backwards compatible accessor until beta becomes stable.
-        /// <returns>
-        /// false if the processed part is NOT the preferred primary weapon, true otherwise
-        /// </returns>
-        /// </summary>
-        public static bool CheckPreferredPrimary(BodyPart part) {
-            // TODO: Remove this once [2.0.204.65] is long considered stable.
-            FieldInfo prop = part.GetType().GetField("PreferredPrimary") ??
-                             part.GetType().GetField("PreferedPrimary");
-            if (prop == null) {
-                Utility.MaybeLog("Could not find PreferredPrimary field in BodyPart. This could be critical?");
-
-                // This return will expend the player's action turn when it might not need to, but the potential NullReference error 
-                // codepath below is debatively worse.
-                return false;  
-            }
-            return (bool)prop.GetValue(part);
         }
     }
 }

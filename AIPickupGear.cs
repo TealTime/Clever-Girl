@@ -4,10 +4,12 @@ namespace XRL.World.Parts {
     using System.Collections.Generic;
     using System.Linq;
     using XRL.World.AI.GoalHandlers;
-    using Qud.API;
     using XRL.World.CleverGirl;
+    using XRL.World.CleverGirl.NativeCodeOverloads;
+    using XRL.World.CleverGirl.BackwardsCompatibility;
     using XRL.World.Anatomy;
     using XRL.UI;
+    using Qud.API;
 
     [Serializable]
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
@@ -24,9 +26,10 @@ namespace XRL.World.Parts {
             ParentObject.RemoveStringProperty(IGNOREDBODYPARTS_PROPERTY);
         }
 
-        public List<string> IgnoredBodyPartIDs {
-            get => ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
-            set => ParentObject.SetStringProperty(IGNOREDBODYPARTS_PROPERTY, string.Join(",", value));
+        // TODO: Determine whether this is actually really inefficient/unoptimized, or if I'm just falling into the root of all evil.
+        public List<int> IgnoredBodyPartIDs {
+            get => ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).Select(int.Parse).ToList();
+            set => ParentObject.SetStringProperty(IGNOREDBODYPARTS_PROPERTY, string.Join(',', value));
         }
 
         // InventoryAction options
@@ -213,6 +216,11 @@ namespace XRL.World.Parts {
                         continue;
                     }
                     if (thingComparer.Compare(thing, bodyPart.Equipped) < 0) {
+                        if (IgnoredBodyPartIDs.Contains(bodyPart.ID)) {
+                            Utility.MaybeLog("Ignoring " + thing.DisplayNameOnlyStripped + " even though its better than my " +
+                                (bodyPart.Equipped?.DisplayNameOnlyStripped ?? "nothing") + " because I'm forbidden to reequip my " + bodyPart.Name);
+                            continue;
+                        }
                         if (thing.pPhysics.InInventory == ParentObject) {
                             Utility.MaybeLog(thing.DisplayNameOnlyStripped + " in my inventory is already better than my " +
                                 (bodyPart.Equipped?.DisplayNameOnlyStripped ?? "nothing"));
@@ -347,28 +355,64 @@ namespace XRL.World.Parts {
         public static bool SpecifyForbiddenEquipmentSlots(GameObject companion) {
             Utility.MaybeLog("Managing auto-equip for " + companion.DisplayNameOnlyStripped);
 
-            bool changed = false;
-            var allBodyParts = companion.Body.GetParts();
-            var optionNames = new List<string>(allBodyParts.Count);
-
-            // Create pretty menu options that show equipped items on the right
-            foreach (var part in allBodyParts) {
-                optionNames.Add(part.Name + " : " + part.Equipped?.ShortDisplayName ?? "[empty]");
-            }
-
-            // Pop up a menu for the player to checklist body parts
-            var chosenBodyPartIndices = Popup.PickSeveral(Title: "Auto Equip Behavior",
-                                                          Options: optionNames.ToArray(),
-                                                          Intro: "Select equipment slots that will be ignored by " + companion.the + companion.ShortDisplayNameWithoutEpithet,
-                                                          AllowEscape: true);
-            // User cancelled, abort!
-            if (chosenBodyPartIndices == null) {
-                Utility.MaybeLog("User aborted!");
+            // Double check whether or not the companion still has auto pickup enabled to avoid a potential NullReferenceException below
+            if (!companion.HasPart(typeof(CleverGirl_AIPickupGear))) {
+                Utility.MaybeLog("Companion doesn't have auto pickup enabled, yet the user is trying to change auto pickup behavior. This is likely a bug and shouldn't happen. Aborting!");
                 return false;
             }
 
-            Utility.MaybeLog("Auto-equip menu finished");
-            return changed;
+            var allBodyParts = companion.Body.GetParts();
+            var optionNames = new List<string>(allBodyParts.Count);
+            var initialIndices = new List<int>(allBodyParts.Count);
+
+            // Grab initial menu selection state from stored ID's
+            int bodyPartIndex = 0;
+            var tempStoredIDs = companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs;
+            foreach (var part in allBodyParts) {
+                if (tempStoredIDs.Contains(part.ID)) {
+                    initialIndices.Add(bodyPartIndex);
+                }
+                bodyPartIndex++;
+            }
+
+            // Show currently equipped items in options
+            foreach (var part in allBodyParts) {
+                string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
+                string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
+                optionNames.Add(part.Name + " : " + primary + " " + equipped);
+            }
+
+            // Pop up a menu for the player to checklist body parts
+            var postIndices = CleverGirl_Popup.PickSeveral(
+                Title: "Auto Equip Behavior",
+                Options: optionNames.ToArray(),
+                Intro: "Select equipment slots that will be ignored by " + companion.the + companion.ShortDisplayNameWithoutEpithet,
+                AllowEscape: true,
+                InitialState: initialIndices);
+
+            // User cancelled, abort!
+            if (postIndices == null) {
+                Utility.MaybeLog("User aborted!");
+                return false;
+            }
+            
+            // If the selection of body parts was changed, then update stored IDs
+            if (!Enumerable.SequenceEqual(initialIndices, postIndices)) {
+                Utility.MaybeLog("Storing new set of ignored body parts for auto pickup.");
+                var debugTemp = companion.GetPart<CleverGirl_AIPickupGear>();
+                Utility.MaybeLog("Before: " + debugTemp.IgnoredBodyPartIDs.Count + " " + (debugTemp.ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY).IsNullOrEmpty() ? "[nothing]" : debugTemp.ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY)));
+                var tmp = companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs;
+                tmp.Clear();
+                foreach (var i in postIndices) {
+                    tmp.Add(allBodyParts[i].ID);
+                }
+                companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs = tmp;
+                Utility.MaybeLog("After: " + debugTemp.IgnoredBodyPartIDs.Count + " " + (debugTemp.ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY).IsNullOrEmpty() ? "[nothing]" : debugTemp.ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY)));
+                return true;
+            }
+
+            Utility.MaybeLog("Set of ignored body parts for auto pickup was unchanged.");
+            return false;
 
         }
         
