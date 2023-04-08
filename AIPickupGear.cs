@@ -363,6 +363,7 @@ namespace XRL.World.Parts {
 
             var allBodyParts = companion.Body.GetParts();
             var optionNames = new List<string>(allBodyParts.Count);
+            var optionHotkeys = new List<char>(allBodyParts.Count);
             var initialIndices = new List<int>(allBodyParts.Count);
 
             // Grab initial menu selection state from stored ID's
@@ -380,12 +381,14 @@ namespace XRL.World.Parts {
                 string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
                 string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
                 optionNames.Add(part.Name + " : " + primary + " " + equipped);
+                optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
             }
 
             // Pop up a menu for the player to checklist body parts
             var postIndices = CleverGirl_Popup.PickSeveral(
                 Title: "Auto Equip Behavior",
                 Options: optionNames.ToArray(),
+                Hotkeys: optionHotkeys.ToArray(),
                 Intro: "Select equipment slots that will be ignored by " + companion.the + companion.ShortDisplayNameWithoutEpithet,
                 AllowEscape: true,
                 InitialState: initialIndices);
