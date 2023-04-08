@@ -1,22 +1,38 @@
-// Custom 
+/// Custom menus that are copied and modified directly from disassembled Qud code.
+///
+/// The function(s)/method(s) in this file are intended to be temporary, with the idea in mind that they may or may not be 
+/// eclipsed by a new developer implementation at some point.
+
 namespace XRL.World.CleverGirl.NativeCodeOverloads {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using XRL.UI;
-    using XRL.Language;
     using ConsoleLib.Console;
     using Qud.UI;
 
-    public class CleverGirl_Popup : Popup {
+    public class CleverGirl_Popup {
+        public class YieldResult {
+            public YieldResult(int Index, bool Value) {
+                index = Index;
+                value = Value;
+            }
+            public int index { get; }
+            public bool value { get; }
+        }
+
         /// <summary>
-        /// Copied the exact source of XRL.UI.Popup.PickSeveral(), with small changes to include initial starting state.
+        /// Copied the exact source of XRL.UI.Popup.PickSeveral(), and edited to
+        ///     1.) Allow for prepopulation of selected options (InitialSelections optional parameter)
+        ///     2.) Yield selections as they occur, instead of having to use Backspace to accept all options at once. 
+        ///         I found myself pressing 'Esc' instead of 'Backspace' and being confused far too often why my selections weren't being saved.
         /// </summary>
-        public static List<int> PickSeveral(
+        public static IEnumerable<YieldResult> YieldSeveral(
             string Title = "", 
             string[] Options = null, 
             char[] Hotkeys = null, 
-            int Amount = -1, 
+            // int Amount = -1,  // Removing 'Amount' all together as I can't find an suitable way to reconcile the edge-case of 
+                                 // initial selection state starting with too many options selected.
             int Spacing = 0, 
             string Intro = null, 
             int MaxWidth = 60, 
@@ -25,6 +41,11 @@ namespace XRL.World.CleverGirl.NativeCodeOverloads {
             int DefaultSelected = 0, 
             string SpacingText = "", 
             Action<int> OnResult = null, 
+            Predicate<int> OnPost = null,  // Another shameless addition added because Clever Girl has some options that are nice 
+                                           // to see visually, but can't be selected. OnResult doesn't seem to fit this use case 
+                                           // as it is void return type, so I made this so that it can truly gate invalid options.
+                                           // I understand this might be a design mistake, (giving callers control over internals)
+                                           // but I'll leave that up to the Pros to decide.
             XRL.World.GameObject Context = null, 
             IRenderable[] Icons = null, 
             IRenderable IntroIcon = null, 
@@ -32,18 +53,12 @@ namespace XRL.World.CleverGirl.NativeCodeOverloads {
             bool CenterIntroIcon = true, 
             int IconPosition = -1, 
             bool ForceNewPopup = false, 
-            List<int> InitialState = null)  // <-- MODIFICATION: New optional parameter to provide starting selection state
+            List<int> InitialSelections = null)  // New optional parameter to provide starting selection state
         {
-            List<int> list = (InitialState == null) ? new List<int>() : new List<int>(InitialState);  // <-- MODIFICATION: Setup initializer to instead use new optional parameter if it exists
+            List<int> list = (InitialSelections == null) ? new List<int>() : new List<int>(InitialSelections);  // Setup initializer to instead use new optional parameter if it exists
             string[] array = new string[Options.Length];
-            QudMenuItem[] array2 = new QudMenuItem[2]
+            QudMenuItem[] array2 = new QudMenuItem[1]
             {
-                new QudMenuItem
-                {
-                    text = "{{W|[Backspace]}} {{y|Accept}}",
-                    command = "option:-2",
-                    hotkey = "Backspace"
-                },
                 new QudMenuItem
                 {
                     command = "option:-3",
@@ -57,28 +72,31 @@ namespace XRL.World.CleverGirl.NativeCodeOverloads {
                     array[i] = (list.Contains(i) ? "{{W|[þ]}} " : "{{y|[ ]}} ");
                     array[i] += Options[i];
                 }
-                array2[1].text = ((list.Count == array.Length) ? "{{W|[Tab]}} {{y|Deselect All}}" : "{{W|[Tab]}} {{y|Select All}}");
-                int num = ShowOptionList(Title, array, Hotkeys, Spacing, Intro, MaxWidth, RespectOptionNewlines, AllowEscape, DefaultSelected, SpacingText, OnResult, Context, Icons, IntroIcon, array2, CenterIntro, CenterIntro, IconPosition, ForceNewPopup);
+                array2[0].text = ((list.Count == array.Length) ? "{{W|[Tab]}} {{y|Deselect All}}" : "{{W|[Tab]}} {{y|Select All}}");
+                int num = Popup.ShowOptionList(Title, array, Hotkeys, Spacing, Intro, MaxWidth, RespectOptionNewlines, AllowEscape, DefaultSelected, SpacingText, OnResult, Context, Icons, IntroIcon, array2, CenterIntro, CenterIntro, IconPosition, ForceNewPopup);
+                if (!OnPost(num)) {  // Check num to see if it's a valid option, otherwise skip
+                    continue;
+                }
                 switch (num)
                 {
-                case -1:
-                    return null;
-                case -2:
-                    if (Amount >= 0 && list.Count > Amount)
-                    {
-                        Show("You cannot select more than " + Grammar.Cardinal(Amount) + " options!");
-                        continue;
-                    }
-                    return list;
-                case -3:
+                case -1:  // Esc / Cancelled
+                    yield break;
+                case -3:  // Tab
+                    var tempList = new List<int>(list);  // Temporary copy for reference in yielding only changed options
                     if (list.Count != array.Length)
                     {
                         list.Clear();
                         list.AddRange(Enumerable.Range(0, array.Length));
+                        foreach (var n in list.Except(tempList)) {  // Only yield options that were added, not those that were unchanged
+                            yield return new YieldResult(n, true);
+                        }
                     }
                     else
                     {
                         list.Clear();
+                        foreach (var n in tempList) {
+                            yield return new YieldResult(n, false);
+                        }
                     }
                     continue;
                 }
@@ -86,13 +104,16 @@ namespace XRL.World.CleverGirl.NativeCodeOverloads {
                 if (num2 >= 0)
                 {
                     list.RemoveAt(num2);
+                    yield return new YieldResult(num, false);
                 }
                 else
                 {
                     list.Add(num);
+                    yield return new YieldResult(num, true);
                 }
                 DefaultSelected = num;
             }
         }
+
     }
 };

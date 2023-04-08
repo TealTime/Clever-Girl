@@ -38,7 +38,7 @@ namespace XRL.World.Parts {
             Display = "manage g{{inventoryhotkey|E}}ar auto-pickup",
             Command = "CleverGirl_ManageGearPickup",
             Key = 'E',
-            Valid = e => e.Object.PartyLeader == The.Player,
+            Valid = Utility.InventoryAction.Adjacent,
         };
 
         // OptionAction options
@@ -317,7 +317,8 @@ namespace XRL.World.Parts {
                 var index = Popup.ShowOptionList(Title: "Gear Management",
                                                  Options: optionNames.ToArray(),
                                                  Hotkeys: optionHotkeys.ToArray(),
-                                                 Intro: companion.ShortDisplayName,
+                                                 Intro: companion.the + companion.ShortDisplayName,
+                                                 centerIntro: true,
                                                  AllowEscape: true);
                 
                 // User cancelled, abort!
@@ -364,73 +365,95 @@ namespace XRL.World.Parts {
             var allBodyParts = companion.Body.GetParts();
             var optionNames = new List<string>(allBodyParts.Count);
             var optionHotkeys = new List<char>(allBodyParts.Count);
-            var initialIndices = new List<int>(allBodyParts.Count);
+            var initialSelections = new List<int>(allBodyParts.Count);
 
             // Grab initial menu selection state from stored ID's
             int bodyPartIndex = 0;
             var tempStoredIDs = companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs;
+            var invalidBodyPartIDs = new List<int>();
             foreach (var part in allBodyParts) {
-                if (tempStoredIDs.Contains(part.ID)) {
-                    initialIndices.Add(bodyPartIndex);
+                // Check if part is equipable in case of fungal infections, horns, TrueKin zoomy tank feet, etc
+                if (!(part.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
+                    Utility.MaybeLog(part.ID + " Can't be unequipped");
+                    invalidBodyPartIDs.Add(part.ID);  // Add to the list so it appears as an immutable option later on
+
+                    // If it's also stored: wipe it. Can happen if an already forbidden companion part becomes immutable.
+                    if (tempStoredIDs.Contains(part.ID)) {
+                        Utility.MaybeLog(part.ID + " Can't be unequipped AND it's ignored!");
+                        tempStoredIDs.RemoveAll(storedID => part.ID == storedID);
+                        companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs = tempStoredIDs;
+                    }
+                } else {
+                    if (tempStoredIDs.Contains(part.ID)) {
+                        initialSelections.Add(bodyPartIndex);
+                    }
                 }
                 bodyPartIndex++;
             }
-
+            
             // Show currently equipped items in options
             foreach (var part in allBodyParts) {
+                bool invalid = invalidBodyPartIDs.Contains(part.ID); 
                 string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
                 string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
+                // TODO: make invalid options grey or something
                 optionNames.Add(part.Name + " : " + primary + " " + equipped);
                 optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
             }
 
+            // Predicate that will be called directly after every option selection. Returning false stops the selection.
+            Predicate<int> CheckIfChoiceIsValid = delegate(int index) {
+                if (index >= 0 && index < allBodyParts.Count) {
+                    Utility.MaybeLog(allBodyParts[index].ID + " : " + invalidBodyPartIDs.Contains(allBodyParts[index].ID) + " [" + string.Join(", ", allBodyParts.Select(p => p.ID)) + "] -> " + string.Join(", ", invalidBodyPartIDs));
+                    return !invalidBodyPartIDs.Contains(allBodyParts[index].ID);
+                }
+                Utility.MaybeLog("Invalid choice index " + index);
+                return true;
+            };
+
             // Pop up a menu for the player to checklist body parts
-            var postIndices = CleverGirl_Popup.PickSeveral(
+            var enumerableMenu = CleverGirl_Popup.YieldSeveral(
                 Title: "Auto Equip Behavior",
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
-                Intro: "Select equipment slots that will be ignored by " + companion.the + companion.ShortDisplayNameWithoutEpithet,
+                OnPost: CheckIfChoiceIsValid,
+                Intro: companion.the + companion.ShortDisplayName + "\nSelect forbidden auto equipment slots",
+                CenterIntro: true,
                 AllowEscape: true,
-                InitialState: initialIndices);
+                InitialSelections: initialSelections
+            );
 
-            // User cancelled, abort!
-            if (postIndices == null) {
-                Utility.MaybeLog("User aborted!");
-                return false;
-            }
-            
-            // If the selection of body parts was changed, then update stored IDs
-            if (!Enumerable.SequenceEqual(initialIndices, postIndices)) {
-                Utility.MaybeLog("Storing new set of ignored body parts for auto pickup.");
-                var debugTemp = companion.GetPart<CleverGirl_AIPickupGear>();
-                Utility.MaybeLog("Before: " + debugTemp.IgnoredBodyPartIDs.Count + " " + (debugTemp.ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY).IsNullOrEmpty() ? "[nothing]" : debugTemp.ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY)));
-                var tmp = companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs;
-                tmp.Clear();
-                foreach (var i in postIndices) {
-                    tmp.Add(allBodyParts[i].ID);
+            bool changed = false;
+            foreach (CleverGirl_Popup.YieldResult result in enumerableMenu)
+            {
+                if (result.index >= allBodyParts.Count) {
+                    Utility.MaybeLog("Selecting body part outside of acceptable range! Abort!");
+                    return false;
                 }
-                companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs = tmp;
-                Utility.MaybeLog("After: " + debugTemp.IgnoredBodyPartIDs.Count + " " + (debugTemp.ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY).IsNullOrEmpty() ? "[nothing]" : debugTemp.ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY)));
-                return true;
+
+                int partID = allBodyParts[result.index].ID;
+                if (result.value) {
+                    if (!tempStoredIDs.Contains(partID)) {
+                        Utility.MaybeLog("Adding ID: " + partID + " to " + string.Join(",", tempStoredIDs));
+                        tempStoredIDs.Add(partID);
+                        changed = true;
+                    }
+                } else {
+                    if (tempStoredIDs.Contains(partID)) {
+                        Utility.MaybeLog("Removing ID: " + partID + " in " + string.Join(",", tempStoredIDs));
+                        tempStoredIDs.RemoveAll(storedID => partID == storedID);
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs = tempStoredIDs;
+                }
             }
 
-            Utility.MaybeLog("Set of ignored body parts for auto pickup was unchanged.");
-            return false;
+            Utility.MaybeLog("IgnoredBodyPartIDs: " + companion.GetPart<CleverGirl_AIPickupGear>().ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY));
 
-        }
-        
-        public static bool EditAutoEquipBehavior(GameObject target, IEnumerable<string> parts) {
-            bool changed = false; 
-            // TODO:
-            //// Evaluate whether any change was actually made in menu selection
-            //if (chosenBodyPartIndices.Count == IgnoredBodyParts.Count) {
-            //    foreach (var index in chosenBodyPartIndices) {
-            //        if (IgnoredBodyParts.Contains(allBodyParts[chosenBodyPartIndices[index]]) == false) {
-            //            return true;
-            //        }
-            //    }
-            //}
             return changed;
+
         }
     }
 }

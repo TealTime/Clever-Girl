@@ -161,6 +161,9 @@ namespace XRL.World.CleverGirl {
             public Func<GameObject, GameObject, bool> ActionCall;
             public Func<GameObject, GameObject, bool> Valid;
             public InvalidOptionBehavior InvalidBehavior = InvalidOptionBehavior.DARKEN;
+            public static bool Adjacent(GameObject leader, GameObject companion) {
+                return leader.CurrentCell.IsAdjacentTo(companion.CurrentCell);
+            }
         }
 
         public enum InvalidOptionBehavior {
