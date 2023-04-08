@@ -43,47 +43,41 @@ namespace XRL.World.Parts {
                 if (CleverGirl_AIPickupGear.Manage(E.Actor, E.Item)) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Pickup");
                 }
-                E.RequestInterfaceExit();
             }
             if (E.Command == CleverGirl_AIManageSkills.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIManageSkills>().Manage()) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Skills");
                 }
-                E.RequestInterfaceExit();
             }
             if (E.Command == CleverGirl_AIManageMutations.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIManageMutations>().Manage()) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Mutations");
                 }
-                E.RequestInterfaceExit();
             }
             if (E.Command == CleverGirl_AIManageAttributes.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIManageAttributes>().Manage()) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Attributes");
                 }
-                E.RequestInterfaceExit();
             }
             if (E.Command == ManageGear.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (ManageGear.Manage(E.Actor, E.Item)) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear");
                 }
-                E.RequestInterfaceExit();
             }
             if (E.Command == Feed.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (Feed.DoFeed(E.Actor, E.Item)) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Feed");
                 }
-                E.RequestInterfaceExit();
             }
             if (E.Command == Feed.COOKING_ACTION.Command) {
                 if (Utility.CollectNearbyCompanions(E.Actor).Count == 0) {
                     Popup.Show("None of your companions are nearby!");
+                    return false;
                 } else {
                     int EnergyCost = 100;
                     if (Feed.DoFeed(E.Actor, ref EnergyCost)) {
                         ParentObject.CompanionDirectionEnergyCost(E.Item, EnergyCost, "Feed Companions");
                     }
-                    E.RequestInterfaceExit();
                 }
             }
             if (E.Command == CyberneticsTerminal2_HandleEvent_GetInventoryActionsEvent_Patch.ACTION.Command) {
@@ -91,9 +85,9 @@ namespace XRL.World.Parts {
                 if (InterfaceCompanions.DoInterface(E, ref companion)) {
                     ParentObject.CompanionDirectionEnergyCost(companion, 100, "Interface");
                 }
-                E.RequestInterfaceExit();
             }
-            return true;
+
+            return base.HandleEvent(E);
         }
 
         public override bool HandleEvent(CommandEvent E) {

@@ -160,7 +160,7 @@ namespace XRL.World.CleverGirl {
             public char Key;
             public Func<GameObject, GameObject, bool> ActionCall;
             public Func<GameObject, GameObject, bool> Valid;
-            public InvalidOptionBehavior Behavior = InvalidOptionBehavior.DARKEN;
+            public InvalidOptionBehavior InvalidBehavior = InvalidOptionBehavior.DARKEN;
         }
 
         public enum InvalidOptionBehavior {

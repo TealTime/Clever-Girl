@@ -41,52 +41,55 @@ namespace XRL.World.Parts {
         // OptionAction options
         public static readonly Utility.OptionAction ENABLE = new Utility.OptionAction {
             Name = "Clever Girl - Enable Gear Pickup",
-            Display = "enable gear auto pickup/equip",
+            Display = "{{y|[ ]}} auto {{hotkey|p}}ickup/equip gear",
             ActionCall = (leader, companion) => SetAutoPickupGear(companion, true),
-            Key = 'e',
+            Key = 'p',
             Valid = (leader, companion) => leader == The.Player && !companion.HasPart(typeof(CleverGirl_AIPickupGear)),
-            Behavior = Utility.InvalidOptionBehavior.HIDE,
+            InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
         public static readonly Utility.OptionAction DISABLE = new Utility.OptionAction {
             Name = "Clever Girl - Disable Gear Pickup",
-            Display = "disable gear auto pickup/equip",
+            Display = "{{W|[þ]}} auto {{hotkey|p}}ickup/equip gear",
             ActionCall = (leader, companion) => SetAutoPickupGear(companion, false),
-            Key = 'e',
+            Key = 'p',
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
-            Behavior = Utility.InvalidOptionBehavior.HIDE,
+            InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
         public static readonly Utility.OptionAction FOLLOWER_ENABLE = new Utility.OptionAction {
             Name = "Clever Girl - Enable Follower Gear Pickup",
-            Display = "enable {{inventoryhotkey|f}}ollower gear auto pickup/equip",
+            Display = "{{y|[ ]}} auto pickup/equip gear ({{hotkey|f}}ollowers)",
             ActionCall = (leader, companion) => SetFollowerAutoPickupGear(companion, true),
             Key = 'f',
             Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => !obj.HasPart(nameof(CleverGirl_AIPickupGear))),
-            Behavior = Utility.InvalidOptionBehavior.HIDE,
+            InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
         public static readonly Utility.OptionAction FOLLOWER_DISABLE = new Utility.OptionAction {
             Name = "Clever Girl - Disable Follower Gear Pickup",
-            Display = "disable {{inventoryhotkey|f}}ollower auto pickup/equip",
+            Display = "{{W|[þ]}} auto pickup/equip gear ({{hotkey|f}}ollowers)",
             ActionCall = (leader, companion) => SetFollowerAutoPickupGear(companion, false),
             Key = 'f',
             Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => obj.HasPart(nameof(CleverGirl_AIPickupGear))),
-            Behavior = Utility.InvalidOptionBehavior.HIDE,
+            InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
         public static readonly Utility.OptionAction AUTO_EQUIP_BEHAVIOR = new Utility.OptionAction {
-            Name = "Clever Girl - Control Auto Equip Behavior",
-            Display = "{{inventoryhotkey|c}}ontrol auto equip behavior",
-            ActionCall = (leader, companion) => AutoEquipBehaviorMenu(companion),
-            Key = 'c',
+            Name = "Clever Girl - Specify Forbidden Equipment Slots",
+            Display = "{{hotkey|s}}pecify forbidden equipment slots",
+            ActionCall = (leader, companion) => SpecifyForbiddenEquipmentSlots(companion),
+            Key = 's',
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
-            Behavior = Utility.InvalidOptionBehavior.DARKEN,
+            InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
         };
-        public static readonly Utility.OptionAction FOLLOWER_AUTO_EQUIP_BEHAVIOR = new Utility.OptionAction {
-            Name = "Clever Girl - Apply Auto Equip Slots To All Followers",
-            Display = "{{inventoryhotkey|C}}opy current auto equip behavior to all autonomous followers",
-            ActionCall = (leader, companion) => CopyAutoEquipBehaviorToFollowers(companion),
-            Key = 'C',
+        //TODO: 
+        /*
+        public static readonly Utility.OptionAction WEAPON_TYPE_PREFERENCE = new Utility.OptionAction {
+            Name = "Clever Girl - Set Weapon Type Preference",
+            Display = "Set weapon {{inventoryhotkey|t}}ype preference",
+            ActionCall = (leader, companion) => SetWeaponTypePreference(companion),
+            Key = 't',
             Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => obj.HasPart(nameof(CleverGirl_AIPickupGear))),
-            Behavior = Utility.InvalidOptionBehavior.DARKEN,
+            InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
         };
+        */
 
         public static readonly List<Utility.OptionAction> MANAGE_MENU_OPTIONS = new List<Utility.OptionAction> {
             ENABLE,
@@ -94,7 +97,6 @@ namespace XRL.World.Parts {
             FOLLOWER_ENABLE,
             FOLLOWER_DISABLE,
             AUTO_EQUIP_BEHAVIOR,
-            FOLLOWER_AUTO_EQUIP_BEHAVIOR,
         };
 
         public override bool WantTurnTick() => true;
@@ -195,7 +197,6 @@ namespace XRL.World.Parts {
                     continue;
                 }
                 foreach (var bodyPart in allBodyParts) {
-                    if (bodyPart)
                     if (!whichBodyParts(bodyPart, thing) || ignoreParts.Contains(bodyPart)) {
                         continue;
                     }
@@ -261,51 +262,77 @@ namespace XRL.World.Parts {
         /// </returns>
         public static bool Manage(GameObject leader, GameObject companion) {
 
-            // Filter out any options that are not valid at this time, if and only if it is set to HIDE behavior
-            List<Utility.OptionAction> filteredOptions = MANAGE_MENU_OPTIONS.Where(o => 
-                o.Valid(leader, companion) ||
-                o.Behavior != Utility.InvalidOptionBehavior.HIDE).ToList();
+            var optionNames = new List<string>(MANAGE_MENU_OPTIONS.Count);
+            var optionHotkeys = new List<char>(MANAGE_MENU_OPTIONS.Count);
+            var optionValidities = new List<bool>(MANAGE_MENU_OPTIONS.Count);
+            var filteredOptions = new List<Utility.OptionAction>(MANAGE_MENU_OPTIONS.Count);
 
-            var optionNames = new List<string>(filteredOptions.Count);
-            var optionHotkeys = new List<char>(filteredOptions.Count);
+            void SetupOptions(GameObject _leader, 
+                              GameObject _companion, 
+                              ref List<Utility.OptionAction> _filteredOptions, 
+                              ref List<string> _optionNames, 
+                              ref List<char> _optionHotkeys, 
+                              ref List<bool> _optionValidities) {
 
-            foreach (var option in filteredOptions) {
-                // Handle options with special behaviors
-                string finalName = option.Display;
-                if (!option.Valid(leader, companion) && option.Behavior == Utility.InvalidOptionBehavior.DARKEN) {
-                    finalName = "&K" + ColorUtility.StripFormatting(finalName);
+                // Filter options, keeping only those that are valid or NOT set to HIDE behavior
+                filteredOptions = MANAGE_MENU_OPTIONS.Where(o => 
+                    o.Valid(leader, companion) ||
+                    o.InvalidBehavior != Utility.InvalidOptionBehavior.HIDE).ToList();
+
+                _optionNames.Clear();
+                _optionHotkeys.Clear();
+                _optionValidities.Clear();
+
+                // Populate option information lists
+                foreach (var option in _filteredOptions) {
+                    string finalName = option.Display;
+
+                    // Handle options with special behaviors
+                    if (!option.Valid(leader, companion)) {
+                        _optionValidities.Add(false);
+                        if (option.InvalidBehavior == Utility.InvalidOptionBehavior.DARKEN) {
+                            finalName = "&K" + ColorUtility.StripFormatting(finalName);
+                        }
+                    } else {
+                        _optionValidities.Add(true);
+                    }
+
+                    _optionNames.Add(finalName);                
+                    _optionHotkeys.Add(option.Key);                
                 }
-
-                optionNames.Add(finalName);                
-                optionHotkeys.Add(option.Key);                
             }
 
+            bool changed = false;
+            // Gear management menu loop
             while (true) {
-                var index = Popup.ShowOptionList(Title: "Gear Management Behavior"
+                SetupOptions(leader, companion, ref filteredOptions, ref optionNames, ref optionHotkeys, ref optionValidities);
+                var index = Popup.ShowOptionList(Title: "Gear Management",
                                                  Options: optionNames.ToArray(),
                                                  Hotkeys: optionHotkeys.ToArray(),
-                                                 Intro: "How should " + companion.the + companion.DisplayNameOnlyStripped + " manage " + companion.theirs + " gear?",
+                                                 Intro: companion.ShortDisplayName,
                                                  AllowEscape: true);
                 
                 // User cancelled, abort!
                 if (index < 0) {
-                    return false;
-                } else {
-                    return filteredOptions[index].ActionCall(leader, companion);
+                    break;
+                } else if (optionValidities[index]) {
+                    changed |= filteredOptions[index].ActionCall(leader, companion);
                 }
             }
+
+            return changed;
         }
 
         private static bool SetAutoPickupGear(GameObject target, bool value) {
             bool wasEnabled = target.HasPart(typeof(CleverGirl_AIPickupGear));
             if (value) {
                 _ = target.RequirePart<CleverGirl_AIPickupGear>();
-                _ = target.RequirePart<CleverGirl_AIUnburden>(); // Anyone picking up gear should know how to unburden themself
-                return wasEnabled == false;  // If it was disabled: it changed, so expend a turn
+                _ = target.RequirePart<CleverGirl_AIUnburden>(); // Anyone picking up gear should know how to unburden themself.
+                return wasEnabled == false;  // If it was disabled prior: it must have changed, so expend a turn.
             } else {
                 target.RemovePart<CleverGirl_AIPickupGear>();
                 target.RemovePart<CleverGirl_AIUnburden>();
-                return wasEnabled == true;  // If it was enabled: it changed, so expend a turn
+                return wasEnabled == true;  // If it was enabled prior: it must have changed, so expend a turn.
             }
         }
 
@@ -317,7 +344,7 @@ namespace XRL.World.Parts {
             return changed;
         }
 
-        public static bool AutoEquipBehaviorMenu(GameObject companion) {
+        public static bool SpecifyForbiddenEquipmentSlots(GameObject companion) {
             Utility.MaybeLog("Managing auto-equip for " + companion.DisplayNameOnlyStripped);
 
             bool changed = false;
@@ -330,8 +357,9 @@ namespace XRL.World.Parts {
             }
 
             // Pop up a menu for the player to checklist body parts
-            var chosenBodyPartIndices = Popup.PickSeveral(Options: optionNames.ToArray(),
-                                                          Intro: "What body parts is " + companion.the + companion.ShortDisplayName + " allowed to auto-equip?",
+            var chosenBodyPartIndices = Popup.PickSeveral(Title: "Auto Equip Behavior",
+                                                          Options: optionNames.ToArray(),
+                                                          Intro: "Select equipment slots that will be ignored by " + companion.the + companion.ShortDisplayNameWithoutEpithet,
                                                           AllowEscape: true);
             // User cancelled, abort!
             if (chosenBodyPartIndices == null) {
@@ -355,17 +383,6 @@ namespace XRL.World.Parts {
             //        }
             //    }
             //}
-            return changed;
-        }
-
-        public static bool CopyAutoEquipBehaviorToFollowers(GameObject target) {
-            if (!target.HasPart
-            bool changed = false; 
-            int count = 0;
-            foreach (var follower in Utility.CollectFollowersOf(target, target.Ignored)) {
-                count++;
-                changed |= EditAutoEquipBehavior(follower);
-            }
             return changed;
         }
     }
