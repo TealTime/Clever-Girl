@@ -40,7 +40,7 @@ namespace XRL.World.Parts {
 
         public override bool HandleEvent(InventoryActionEvent E) {
             if (E.Command == CleverGirl_AIPickupGear.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (CleverGirl_AIPickupGear.Manage()) {
+                if (CleverGirl_AIPickupGear.Manage(E.Actor, E.Item)) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Pickup");
                 }
                 E.RequestInterfaceExit();

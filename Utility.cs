@@ -9,7 +9,7 @@ namespace XRL.World.CleverGirl {
     using ConsoleLib.Console;
 
     public static class Utility {
-        public static bool debug;
+        public static bool debug = true;
 
         public static void MaybeLog(string message, [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0) {
             if (debug) {
@@ -91,6 +91,12 @@ namespace XRL.World.CleverGirl {
             return The.ActiveZone.FindObjects(obj => obj.IsLedBy(Leader));
         }
 
+        /// <summary>
+        /// Custom option menu that automatically performs category alignment
+        /// </summary>
+        /// <example>
+        /// Companions Menu uses this to show all important details about all current player/companion followers
+        /// </example>
         public static int ShowTabularPopup(string Title, List<List<string>> Columns, List<int> ColumnWidths = null, List<IRenderable> Icons = null, IRenderable IntroIcon = null) {
             if (ColumnWidths == null) {
                 ColumnWidths = new List<int>();
@@ -135,6 +141,7 @@ namespace XRL.World.CleverGirl {
             return Popup.ShowOptionList(Title: Title, Options: lines, Hotkeys: hotkeys, IntroIcon: IntroIcon, Icons: Icons.ToArray(), AllowEscape: true);
         }
 
+        // Format of options to be processed in EventListener
         public class InventoryAction {
             public string Name;
             public string Display;
@@ -144,6 +151,21 @@ namespace XRL.World.CleverGirl {
             public static bool Adjacent(IInventoryActionsEvent e) {
                 return e.Actor.CurrentCell.IsAdjacentTo(e.Object.CurrentCell);
             }
+        }
+
+        // Format of options to be processed manually in ShowOptionList
+        public class OptionAction {
+            public string Name;
+            public string Display;
+            public char Key;
+            public Func<GameObject, GameObject, bool> ActionCall;
+            public Func<GameObject, GameObject, bool> Valid;
+            public InvalidOptionBehavior Behavior = InvalidOptionBehavior.DARKEN;
+        }
+
+        public enum InvalidOptionBehavior {
+            DARKEN,  // Make option look darker to indicate the option is invalid
+            HIDE,  // Make option disappear entirely 
         }
     }
 }
