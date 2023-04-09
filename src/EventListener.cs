@@ -14,7 +14,8 @@ namespace XRL.World.Parts {
             ID == OwnerGetInventoryActionsEvent.ID ||
             ID == InventoryActionEvent.ID ||
             ID == CommandEvent.ID ||
-            ID == GetCookingActionsEvent.ID;
+            ID == GetCookingActionsEvent.ID ||
+            ID == CleverGirl_MenuSelectEvent.ID;
         public override bool HandleEvent(OwnerGetInventoryActionsEvent E) {
             if (E.Actor == ParentObject && E.Object?.IsPlayerLed() == true && !E.Object.IsPlayer()) {
                 if (E.Object.HasPart(typeof(CannotBeInfluenced))) {
@@ -22,13 +23,8 @@ namespace XRL.World.Parts {
                     return true;
                 }
                 var actions = new List<Utility.InventoryAction>{
-                        CleverGirl_AIPickupGear.ACTION,
-                        CleverGirl_AIManageSkills.ACTION,
-                        CleverGirl_AIManageMutations.ACTION,
-                        CleverGirl_AIManageAttributes.ACTION,
-                        ManageGear.ACTION,
-                        Feed.ACTION,
-                    };
+                    CleverGirl_MainMenu.ACTION,
+                };
                 foreach (var action in actions) {
                     if (action.Valid(E)) {
                         _ = E.AddAction(action.Name, action.Display, action.Command, Key: action.Key, FireOnActor: true, WorksAtDistance: true);
@@ -39,43 +35,19 @@ namespace XRL.World.Parts {
         }
 
         public override bool HandleEvent(InventoryActionEvent E) {
-            if (E.Command == CleverGirl_AIPickupGear.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (CleverGirl_AIPickupGear.Manage(E.Actor, E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Pickup");
+            if (E.Command == CleverGirl_MainMenu.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                // TODO: One time Popup to explain/hand-wave Clever Girl's existence in the Qud universe in a fun way
+                if (CleverGirl_MainMenu.Start(E.Actor, E.Item)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Clever Girl Main Menu");
                 }
             }
-            if (E.Command == CleverGirl_AIManageSkills.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIManageSkills>().Manage()) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Skills");
-                }
-            }
-            if (E.Command == CleverGirl_AIManageMutations.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIManageMutations>().Manage()) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Mutations");
-                }
-            }
-            if (E.Command == CleverGirl_AIManageAttributes.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIManageAttributes>().Manage()) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Attributes");
-                }
-            }
-            if (E.Command == ManageGear.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (ManageGear.Manage(E.Actor, E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear");
-                }
-            }
-            if (E.Command == Feed.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (Feed.DoFeed(E.Actor, E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Feed");
-                }
-            }
-            if (E.Command == Feed.COOKING_ACTION.Command) {
+            if (E.Command == CleverGirl_Feed.COOKING_ACTION.Command) {
                 if (Utility.CollectNearbyCompanions(E.Actor).Count == 0) {
                     Popup.Show("None of your companions are nearby!");
                     return false;
                 } else {
                     int EnergyCost = 100;
-                    if (Feed.DoFeed(E.Actor, ref EnergyCost)) {
+                    if (CleverGirl_Feed.DoFeed(E.Actor, ref EnergyCost)) {
                         ParentObject.CompanionDirectionEnergyCost(E.Item, EnergyCost, "Feed Companions");
                     }
                 }
@@ -90,6 +62,69 @@ namespace XRL.World.Parts {
             return base.HandleEvent(E);
         }
 
+        public bool HandleEvent(CleverGirl_MenuSelectEvent E) {
+            /** MainMenu Options **/
+            if (E.Command == CleverGirl_Feed.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (CleverGirl_Feed.DoFeed(E.Actor, E.Item)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Feed");
+                }
+            }
+            if (E.Command == CleverGirl_ManageGear.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (CleverGirl_ManageGear.Manage(E.Actor, E.Item)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear");
+                }
+            }
+            if (E.Command == CleverGirl_AutoPickupEquipMenu.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (CleverGirl_AutoPickupEquipMenu.Start(E.Actor, E.Item)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Auto Pickup/Equip Behavior");
+                }
+            }
+            if (E.Command == CleverGirl_AIManageSkills.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIManageSkills>().Manage()) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Skills");
+                }
+            }
+            if (E.Command == CleverGirl_AIManageAttributes.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIManageAttributes>().Manage()) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Attributes");
+                }
+            }
+            if (E.Command == CleverGirl_AIManageMutations.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIManageMutations>().Manage()) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Mutations");
+                }
+            }
+
+            /** AutoPickupEquipMenu Options **/
+            if (E.Command == CleverGirl_AutoPickupEquipMenu.ENABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetAutoPickupGear(E.Item, true)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Gear Pickup");
+                }
+            }
+            if (E.Command == CleverGirl_AutoPickupEquipMenu.DISABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetAutoPickupGear(E.Item, false)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Gear Pickup");
+                }
+            }
+            if (E.Command == CleverGirl_AutoPickupEquipMenu.FOLLOWER_ENABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(E.Item, true)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Follower Gear Pickup");
+                }
+            }
+            if (E.Command == CleverGirl_AutoPickupEquipMenu.FOLLOWER_DISABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(E.Item, false)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Follower Gear Pickup");
+                }
+            }
+            if (E.Command == CleverGirl_AutoPickupEquipMenu.AUTO_EQUIP_BEHAVIOR.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SpecifyForbiddenEquipmentSlots(E.Item)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Behavior");
+                }
+            }
+
+            return true;
+        }
+
         public override bool HandleEvent(CommandEvent E) {
             if (E.Command == "CleverGirl_CmdWaitUntilPartyHealed" && !AutoAct.ShouldHostilesInterrupt("r", popSpot: true)) {
                 AutoAct.Setting = "r";
@@ -100,13 +135,13 @@ namespace XRL.World.Parts {
                 Loading.SetLoadingStatus("Resting until party healed...");
             }
             if (E.Command == "CleverGirl_CmdCompanionsMenu") {
-                CompanionsMenu.OpenMenu();
+                CleverGirl_CompanionsMenu.OpenMenu();
             }
             return true;
         }
 
         public override bool HandleEvent(GetCookingActionsEvent E) {
-            var action = Feed.COOKING_ACTION;
+            var action = CleverGirl_Feed.COOKING_ACTION;
             _ = E.AddAction(action.Name,
                             Campfire.EnabledDisplay(Utility.CollectNearbyCompanions(E.Actor).Count > 0, action.Display),
                             action.Command,

@@ -6,7 +6,7 @@ namespace XRL.World.CleverGirl {
     using System.Reflection;
     using ConsoleLib.Console;
 
-    public static class CompanionsMenu {
+    public static class CleverGirl_CompanionsMenu {
         public static void OpenMenu() {
             if (The.Player == null) {
                 // too early?

@@ -158,7 +158,7 @@ namespace XRL.World.CleverGirl {
             public string Name;
             public string Display;
             public char Key;
-            public Func<GameObject, GameObject, bool> ActionCall;
+            public string Command;
             public Func<GameObject, GameObject, bool> Valid;
             public InvalidOptionBehavior InvalidBehavior = InvalidOptionBehavior.DARKEN;
             public static bool Adjacent(GameObject leader, GameObject companion) {

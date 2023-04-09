@@ -12,13 +12,13 @@ namespace XRL.World.CleverGirl {
     using XRL.World.Anatomy;
     using XRL.World.CleverGirl.BackwardsCompatibility;
 
-    public static class ManageGear {
-        public static readonly Utility.InventoryAction ACTION = new Utility.InventoryAction {
+    public static class CleverGirl_ManageGear {
+        public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Gear",
             Display = "manage g{{inventoryhotkey|e}}ar",
             Command = "CleverGirl_ManageGear",
             Key = 'e',
-            Valid = Utility.InventoryAction.Adjacent,
+            Valid = Utility.OptionAction.Adjacent,
         };
 
         public static bool Manage(GameObject Leader, GameObject Companion) {

@@ -10,12 +10,12 @@ namespace XRL.World.Parts {
     [Serializable]
     [HarmonyPatch]
     public class CleverGirl_AIManageMutations : CleverGirl_INoSavePart {
-        public static readonly Utility.InventoryAction ACTION = new Utility.InventoryAction {
+        public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Mutations",
             Display = "manage mu{{inventoryhotkey|t}}ations",
             Command = "CleverGirl_ManageMutations",
             Key = 't',
-            Valid = E => E.Object.PartyLeader == The.Player,
+            Valid = (leader, companion) => companion.PartyLeader == The.Player,
         };
         public static string PROPERTY => "CleverGirl_AIManageMutations";
         public static string FOCUSINGMUTATIONS_PROPERTY => PROPERTY + "_FocusingMutations";

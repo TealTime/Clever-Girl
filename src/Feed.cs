@@ -13,14 +13,8 @@ namespace XRL.World.CleverGirl {
     using XRL.World.Parts.Mutation;
     using XRL.World.Skills.Cooking;
 
-    public static class Feed {
-        public static readonly Utility.InventoryAction ACTION = new Utility.InventoryAction {
-            Name = "Clever Girl - Feed",
-            Display = "fee{{inventoryhotkey|d}}",
-            Command = "CleverGirl_Feed",
-            Key = 'd',
-            Valid = CanFeed,
-        };
+    public static class CleverGirl_Feed {
+        // InventoryAction options
         public static readonly Utility.InventoryAction COOKING_ACTION = new Utility.InventoryAction {
             Name = "Clever Girl - Feed Multiple",
             Display = "Feed companions",
@@ -28,9 +22,18 @@ namespace XRL.World.CleverGirl {
             Key = 'd',
         };
 
-        private static bool CanFeed(IInventoryActionsEvent E) {
-            return Utility.InventoryAction.Adjacent(E) && CanEat(E.Object) &&
-                (HasFood(E.Actor) || HasFood(E.Object) || NextToUsableCampfire(E.Actor));
+        // OptionAction options
+        public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
+            Name = "Clever Girl - Feed",
+            Display = "fee{{inventoryhotkey|d}}",
+            Command = "CleverGirl_Feed",
+            Key = 'd',
+            Valid = CanFeed,
+        };
+
+        private static bool CanFeed(GameObject leader, GameObject companion) {
+            return Utility.OptionAction.Adjacent(leader, companion) && CanEat(companion) &&
+                (HasFood(leader) || HasFood(companion) || NextToUsableCampfire(leader));
         }
 
         public static bool CanEat(GameObject obj) {

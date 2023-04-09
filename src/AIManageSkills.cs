@@ -8,12 +8,12 @@ namespace XRL.World.Parts {
 
     [Serializable]
     public class CleverGirl_AIManageSkills : CleverGirl_INoSavePart {
-        public static readonly Utility.InventoryAction ACTION = new Utility.InventoryAction {
+        public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Skills",
             Display = "manage s{{inventoryhotkey|k}}ills",
             Command = "CleverGirl_ManageSkills",
             Key = 'k',
-            Valid = E => E.Object.PartyLeader == The.Player,
+            Valid = (leader, companion) => companion.PartyLeader == The.Player,
         };
         public static string PROPERTY => "CleverGirl_AIManageSkills";
         public static string LEARNINGSKILLS_PROPERTY => PROPERTY + "_LearningSkills";
