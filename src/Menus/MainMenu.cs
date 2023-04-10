@@ -4,7 +4,6 @@ namespace XRL.World.CleverGirl {
     using System.Collections.Generic;
     using System.Linq;
     using XRL.World.Parts;
-    using XRL.Rules;
 
     public class CleverGirl_MainMenu {
 
@@ -23,7 +22,7 @@ namespace XRL.World.CleverGirl {
             (l, c) => "Live and drink!",
             (l, c) => "Your thirst is yours, my water is MINE.",
         };
-        private static Random rng = new Random();
+        private static readonly Random rng = new Random();
         private static List<int> rngSequence = null;
         private static int rngIndex = 0;
 

@@ -174,11 +174,11 @@ namespace XRL.World.Parts {
             if (value) {
                 _ = companion.RequirePart<CleverGirl_AIPickupGear>();
                 _ = companion.RequirePart<CleverGirl_AIUnburden>(); // Anyone picking up gear should know how to unburden themself.
-                return wasEnabled == false;  // If it was disabled prior: it must have changed, so expend a turn.
+                return !wasEnabled;  // If it was disabled prior: it must have changed, so expend a turn.
             } else {
                 companion.RemovePart<CleverGirl_AIPickupGear>();
                 companion.RemovePart<CleverGirl_AIUnburden>();
-                return wasEnabled == true;  // If it was enabled prior: it must have changed, so expend a turn.
+                return wasEnabled;  // If it was enabled prior: it must have changed, so expend a turn.
             }
         }
 
@@ -240,8 +240,8 @@ namespace XRL.World.Parts {
                 optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
             }
 
-            // Predicate that will be called directly after every option selection. Returning false stops the selection.
-            Predicate<int> CheckIfChoiceIsValid = delegate(int index) {
+            // Menu selection post-hook function. Returning false will stop the current selection.
+            bool CheckIfChoiceIsValid(int index) {
                 if (index >= 0 && index < allBodyParts.Count) {
                     Utility.MaybeLog(allBodyParts[index].ID + " : " + invalidBodyPartIDs.Contains(allBodyParts[index].ID) + " [" + string.Join(", ", allBodyParts.Select(p => p.ID)) + "] -> " + string.Join(", ", invalidBodyPartIDs));
                     return !invalidBodyPartIDs.Contains(allBodyParts[index].ID);
@@ -264,8 +264,7 @@ namespace XRL.World.Parts {
             );
 
             bool changed = false;
-            foreach (CleverGirl_Popup.YieldResult result in enumerableMenu)
-            {
+            foreach (CleverGirl_Popup.YieldResult result in enumerableMenu) {
                 if (result.index >= allBodyParts.Count) {
                     Utility.MaybeLog("Selecting body part outside of acceptable range! Abort!");
                     return false;

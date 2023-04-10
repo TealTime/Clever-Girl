@@ -4,7 +4,6 @@ namespace XRL.World.CleverGirl {
     using ConsoleLib.Console;
     using Qud.API;
     using System.Collections.Generic;
-    using System.Reflection;
     using XRL.Core;
     using XRL.Language;
     using XRL.UI;

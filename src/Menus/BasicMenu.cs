@@ -51,8 +51,6 @@ namespace XRL.World.CleverGirl {
         public static bool Start(GameObject leader,
                                  GameObject companion,
                                  List<Utility.OptionAction> allOptions,  // NOTE: Once C# >= 7.2, this should be "in" reference
-
-                                  /* Only including the defaults clever girl explicitly uses for compatibility reasons */
                                  string Title = "",
                                  string[] Options = null,
                                  char[] Hotkeys = null,
