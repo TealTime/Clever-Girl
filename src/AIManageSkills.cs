@@ -10,9 +10,9 @@ namespace XRL.World.Parts {
     public class CleverGirl_AIManageSkills : CleverGirl_INoSavePart {
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Skills",
-            Display = "manage s{{inventoryhotkey|k}}ills",
+            Display = "manage {{hotkey|s}}kills",
             Command = "CleverGirl_ManageSkills",
-            Key = 'k',
+            Key = 's',
             Valid = (leader, companion) => companion.PartyLeader == The.Player,
         };
         public static string PROPERTY => "CleverGirl_AIManageSkills";

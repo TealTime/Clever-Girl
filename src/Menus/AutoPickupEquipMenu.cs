@@ -5,16 +5,13 @@ namespace XRL.World.CleverGirl {
     using XRL.World.Parts;
 
     public class CleverGirl_AutoPickupEquipMenu {
-        /** InventoryAction Options **/
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Gear Pickup",
-            Display = "manage gear auto {{inventoryhotkey|p}}ickup/equip behavior",
+            Display = "manage gear auto {{hotkey|p}}ickup/equip behavior",
             Command = "CleverGirl_ManageGearPickup",
-            Key = 'E',
+            Key = 'p',
             Valid = Utility.OptionAction.Adjacent,
         };
-
-        /** OptionAction Options **/
         public static readonly Utility.OptionAction ENABLE = new Utility.OptionAction {
             Name = "Clever Girl - Enable Gear Pickup",
             Display = "{{y|[ ]}} auto {{hotkey|p}}ickup/equip gear",
@@ -55,6 +52,16 @@ namespace XRL.World.CleverGirl {
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
             InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
         };
+        /** TODO: 
+        public static readonly Utility.OptionAction WEAPON_TYPE_PREFERENCE = new Utility.OptionAction {
+            Name = "Clever Girl - Set Weapon Type Preference",
+            Display = "Set weapon {{hotkey|t}}ype preference",
+            Command = "CleverGirl_SetWeaponTypePreference",
+            Key = 't',
+            Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
+            InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
+        };
+        **/
 
         public static readonly List<Utility.OptionAction> OPTIONS = new List<Utility.OptionAction> {
             ENABLE,
@@ -64,19 +71,12 @@ namespace XRL.World.CleverGirl {
             AUTO_EQUIP_BEHAVIOR,
         };
 
-        //TODO: 
-        /*
-        public static readonly Utility.OptionAction WEAPON_TYPE_PREFERENCE = new Utility.OptionAction {
-            Name = "Clever Girl - Set Weapon Type Preference",
-            Display = "Set weapon {{inventoryhotkey|t}}ype preference",
-            ActionCall = (leader, companion) => SetWeaponTypePreference(companion),
-            Key = 't',
-            Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => obj.HasPart(nameof(CleverGirl_AIPickupGear))),
-            InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
-        };
-        */
         public static bool Start(GameObject leader, GameObject companion) {
-            return CleverGirl_BasicMenu.Start(leader, companion, OPTIONS);
+            return CleverGirl_BasicMenu.Start(leader, companion, OPTIONS,
+                                              Title: companion.the + companion.ShortDisplayName,
+                                              centerIntro: true,
+                                              IntroIcon: companion.RenderForUI(),
+                                              AllowEscape: true);
         }
     }
 }

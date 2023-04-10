@@ -25,9 +25,9 @@ namespace XRL.World.CleverGirl {
         // OptionAction options
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Feed",
-            Display = "fee{{inventoryhotkey|d}}",
+            Display = "{{hotkey|f}}eed",
             Command = "CleverGirl_Feed",
-            Key = 'd',
+            Key = 'f',
             Valid = CanFeed,
         };
 

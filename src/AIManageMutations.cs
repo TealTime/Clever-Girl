@@ -12,9 +12,9 @@ namespace XRL.World.Parts {
     public class CleverGirl_AIManageMutations : CleverGirl_INoSavePart {
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Mutations",
-            Display = "manage mu{{inventoryhotkey|t}}ations",
+            Display = "manage {{hotkey|m}}utations",
             Command = "CleverGirl_ManageMutations",
-            Key = 't',
+            Key = 'm',
             Valid = (leader, companion) => companion.PartyLeader == The.Player,
         };
         public static string PROPERTY => "CleverGirl_AIManageMutations";

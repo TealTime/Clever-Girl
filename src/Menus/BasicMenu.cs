@@ -1,20 +1,22 @@
 namespace XRL.World.CleverGirl {
     using ConsoleLib.Console;
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using XRL.UI;
+    using Qud.UI;
 
     public class CleverGirl_BasicMenu {
-        public static void SetupOptions(GameObject leader, 
-                                        GameObject companion, 
+        public static void SetupOptions(GameObject leader,
+                                        GameObject companion,
                                         List<Utility.OptionAction> allOptions,  // NOTE: Once C# >= 7.2, this should be "in" reference
-                                        ref List<Utility.OptionAction> filteredOptions, 
-                                        ref List<string> optionNames, 
-                                        ref List<char> optionHotkeys, 
+                                        ref List<Utility.OptionAction> filteredOptions,
+                                        ref List<string> optionNames,
+                                        ref List<char> optionHotkeys,
                                         ref List<bool> optionValidities) {
 
             // Filter options, keeping only those that are valid or NOT set to HIDE behavior
-            filteredOptions = allOptions.Where(o => 
+            filteredOptions = allOptions.Where(o =>
                 o.Valid(leader, companion) ||
                 o.InvalidBehavior != Utility.InvalidOptionBehavior.HIDE).ToList();
 
@@ -36,8 +38,8 @@ namespace XRL.World.CleverGirl {
                     optionValidities.Add(true);
                 }
 
-                optionNames.Add(finalName);                
-                optionHotkeys.Add(option.Key);                
+                optionNames.Add(finalName);
+                optionHotkeys.Add(option.Key);
             }
         }
         /// <summary>
@@ -47,16 +49,29 @@ namespace XRL.World.CleverGirl {
         /// boolean flag to indicate that energy was spent talking with companion (true), or not (false)
         /// </returns>
         public static bool Start(GameObject leader,
-                                GameObject companion,
-                                List<Utility.OptionAction> allOptions,  // NOTE: Once C# >= 7.2, this should be "in" reference
+                                 GameObject companion,
+                                 List<Utility.OptionAction> allOptions,  // NOTE: Once C# >= 7.2, this should be "in" reference
 
-                                /* Only including the defaults clever girl explicitly uses for compatibility reasons */
-                                string Title = "",                    
-                                string[] Options = null,
-                                char[] Hotkeys = null,
-                                string Intro = null,
-                                bool AllowEscape = false,
-                                bool centerIntro = false) {
+                                  /* Only including the defaults clever girl explicitly uses for compatibility reasons */
+                                 string Title = "",
+                                 string[] Options = null,
+                                 char[] Hotkeys = null,
+                                 int Spacing = 0,
+                                 string Intro = null,
+                                 int MaxWidth = 60,
+                                 bool RespectOptionNewlines = false,
+                                 bool AllowEscape = false,
+                                 int defaultSelected = 0,
+                                 string SpacingText = "",
+                                 Action<int> onResult = null,
+                                 GameObject context = null,
+                                 IRenderable[] Icons = null,
+                                 IRenderable IntroIcon = null,
+                                 QudMenuItem[] Buttons = null,
+                                 bool centerIntro = false,
+                                 bool centerIntroIcon = true,
+                                 int iconPosition = -1,
+                                 bool forceNewPopup = false) {
 
             var optionNames = new List<string>(allOptions.Count);
             var optionHotkeys = new List<char>(allOptions.Count);
@@ -71,10 +86,24 @@ namespace XRL.World.CleverGirl {
                 var index = Popup.ShowOptionList(Title: Title,
                                                  Options: optionNames.ToArray(),
                                                  Hotkeys: optionHotkeys.ToArray(),
-                                                 Intro: companion.the + companion.ShortDisplayName,
-                                                 centerIntro: centerIntro,
-                                                 AllowEscape: true);
-                
+                                                 Spacing: Spacing, 
+                                                 Intro: Intro, 
+                                                 MaxWidth: MaxWidth, 
+                                                 RespectOptionNewlines: RespectOptionNewlines, 
+                                                 AllowEscape: AllowEscape, 
+                                                 defaultSelected: defaultSelected, 
+                                                 SpacingText: SpacingText, 
+                                                 onResult: onResult, 
+                                                 context: context, 
+                                                 Icons: Icons, 
+                                                 IntroIcon: IntroIcon, 
+                                                 Buttons: Buttons, 
+                                                 centerIntro: centerIntro, 
+                                                 centerIntroIcon: centerIntroIcon, 
+                                                 iconPosition: iconPosition, 
+                                                 forceNewPopup: forceNewPopup);
+                                                
+
                 // User cancelled, abort!
                 if (index < 0) {
                     break;

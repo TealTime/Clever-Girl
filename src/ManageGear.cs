@@ -15,9 +15,9 @@ namespace XRL.World.CleverGirl {
     public static class CleverGirl_ManageGear {
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Gear",
-            Display = "manage g{{inventoryhotkey|e}}ar",
+            Display = "manage {{hotkey|g}}ear",
             Command = "CleverGirl_ManageGear",
-            Key = 'e',
+            Key = 'g',
             Valid = Utility.OptionAction.Adjacent,
         };
 

@@ -256,8 +256,9 @@ namespace XRL.World.Parts {
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
                 OnPost: CheckIfChoiceIsValid,
-                Intro: companion.the + companion.ShortDisplayName + "\nSelect forbidden auto equipment slots",
+                Intro: "Select forbidden auto equipment slots",
                 CenterIntro: true,
+                IntroIcon: companion.RenderForUI(),
                 AllowEscape: true,
                 InitialSelections: initialSelections
             );
