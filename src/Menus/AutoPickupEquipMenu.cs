@@ -52,7 +52,7 @@ namespace XRL.World.CleverGirl {
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
             InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
         };
-        /** TODO: 
+        /** TODO:
         public static readonly Utility.OptionAction WEAPON_TYPE_PREFERENCE = new Utility.OptionAction {
             Name = "Clever Girl - Set Weapon Type Preference",
             Display = "Set weapon {{hotkey|t}}ype preference",

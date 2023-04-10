@@ -13,7 +13,7 @@ namespace XRL.World.CleverGirl {
         private static List<CleverGirl_MenuSelectEvent> Pool;
         private static int PoolCounter;
 
-        
+
         // Qud Wiki Note:
         // "This is necessary for custom events that need the HandleEvent to be reflected."
         public override bool WantInvokeDispatch() {

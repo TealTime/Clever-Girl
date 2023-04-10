@@ -227,7 +227,7 @@ namespace XRL.World.Parts {
                 }
                 bodyPartIndex++;
             }
-            
+
             // Format option texts and setup hotkeys
             foreach (var part in allBodyParts) {
                 string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";

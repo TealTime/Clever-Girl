@@ -8,7 +8,7 @@ namespace XRL.World.CleverGirl {
 
     public class CleverGirl_MainMenu {
 
-        // TODO: Make these remarks more immersive by adding conditions and priority system. Also account for 
+        // TODO: Make these remarks more immersive by adding conditions and priority system. Also account for
         //       lack of mouths and/or telepathy.
         //       (IE: "Remember that [dmg_source] you hit me with [number] turns ago? Cause I sure do.")
         public static readonly List<Func<GameObject, GameObject, string>> REMARKS = new List<Func<GameObject, GameObject, string>> {

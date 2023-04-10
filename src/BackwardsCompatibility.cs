@@ -5,7 +5,7 @@
 namespace XRL.World.CleverGirl.BackwardsCompatibility {
     using System.Reflection;
     using XRL.World.Anatomy;
-    
+
     public class CleverGirl_BackwardsCompatibility {
 
         /// <summary>
@@ -22,9 +22,9 @@ namespace XRL.World.CleverGirl.BackwardsCompatibility {
             if (prop == null) {
                 Utility.MaybeLog("Could not find PreferredPrimary field in BodyPart. This could be critical?");
 
-                // This return will expend the player's action turn when it might not need to, but the potential NullReference error 
+                // This return will expend the player's action turn when it might not need to, but the potential NullReference error
                 // codepath below is debatively worse.
-                return false;  
+                return false;
             }
             return (bool)prop.GetValue(part);
         }

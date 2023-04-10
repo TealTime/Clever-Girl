@@ -1,6 +1,6 @@
 /// Custom menus that are copied and modified directly from disassembled Qud code.
 ///
-/// The function(s)/method(s) in this file are intended to be temporary, with the idea in mind that they may or may not be 
+/// The function(s)/method(s) in this file are intended to be temporary, with the idea in mind that they may or may not be
 /// eclipsed by a new developer implementation at some point.
 
 namespace XRL.World.CleverGirl.NativeCodeOverloads {
@@ -24,35 +24,35 @@ namespace XRL.World.CleverGirl.NativeCodeOverloads {
         /// <summary>
         /// Copied the exact source of XRL.UI.Popup.PickSeveral(), and edited to
         ///     1.) Allow for prepopulation of selected options (InitialSelections optional parameter)
-        ///     2.) Yield selections as they occur, instead of having to use Backspace to accept all options at once. 
+        ///     2.) Yield selections as they occur, instead of having to use Backspace to accept all options at once.
         ///         I found myself pressing 'Esc' instead of 'Backspace' and being confused far too often why my selections weren't being saved.
         /// </summary>
         public static IEnumerable<YieldResult> YieldSeveral(
-            string Title = "", 
-            string[] Options = null, 
-            char[] Hotkeys = null, 
-            // int Amount = -1,  // Removing 'Amount' all together as I can't find an suitable way to reconcile the edge-case of 
+            string Title = "",
+            string[] Options = null,
+            char[] Hotkeys = null,
+            // int Amount = -1,  // Removing 'Amount' all together as I can't find an suitable way to reconcile the edge-case of
                                  // initial selection state starting with too many options selected.
-            int Spacing = 0, 
-            string Intro = null, 
-            int MaxWidth = 60, 
-            bool RespectOptionNewlines = false, 
-            bool AllowEscape = false, 
-            int DefaultSelected = 0, 
-            string SpacingText = "", 
-            Action<int> OnResult = null, 
-            Predicate<int> OnPost = null,  // Another shameless addition added because Clever Girl has some options that are nice 
-                                           // to see visually, but can't be selected. OnResult doesn't seem to fit this use case 
+            int Spacing = 0,
+            string Intro = null,
+            int MaxWidth = 60,
+            bool RespectOptionNewlines = false,
+            bool AllowEscape = false,
+            int DefaultSelected = 0,
+            string SpacingText = "",
+            Action<int> OnResult = null,
+            Predicate<int> OnPost = null,  // Another shameless addition added because Clever Girl has some options that are nice
+                                           // to see visually, but can't be selected. OnResult doesn't seem to fit this use case
                                            // as it is void return type, so I made this so that it can truly gate invalid options.
                                            // I understand this might be a design mistake, (giving callers control over internals)
                                            // but I'll leave that up to the Pros to decide.
-            XRL.World.GameObject Context = null, 
-            IRenderable[] Icons = null, 
-            IRenderable IntroIcon = null, 
-            bool CenterIntro = false, 
-            bool CenterIntroIcon = true, 
-            int IconPosition = -1, 
-            bool ForceNewPopup = false, 
+            XRL.World.GameObject Context = null,
+            IRenderable[] Icons = null,
+            IRenderable IntroIcon = null,
+            bool CenterIntro = false,
+            bool CenterIntroIcon = true,
+            int IconPosition = -1,
+            bool ForceNewPopup = false,
             List<int> InitialSelections = null)  // New optional parameter to provide starting selection state
         {
             List<int> list = (InitialSelections == null) ? new List<int>() : new List<int>(InitialSelections);  // Setup initializer to instead use new optional parameter if it exists

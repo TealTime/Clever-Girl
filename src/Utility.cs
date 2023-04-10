@@ -168,7 +168,7 @@ namespace XRL.World.CleverGirl {
 
         public enum InvalidOptionBehavior {
             DARKEN,  // Make option look darker to indicate the option is invalid
-            HIDE,  // Make option disappear entirely 
+            HIDE,  // Make option disappear entirely
         }
     }
 }
