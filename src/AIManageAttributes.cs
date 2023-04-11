@@ -2,8 +2,8 @@ namespace XRL.World.Parts {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using XRL.UI;
     using XRL.World.CleverGirl;
+    using XRL.World.CleverGirl.Overloads;
 
     [Serializable]
     public class CleverGirl_AIManageAttributes : CleverGirl_INoSavePart {
@@ -14,6 +14,28 @@ namespace XRL.World.Parts {
             Key = 'a',
             Valid = (leader, companion) => companion.PartyLeader == The.Player,
         };
+        public static readonly Dictionary<string, string> Comparatives = new Dictionary<string, string>{
+            {"Strength", "stronger"},
+            {"Agility", "quicker"},
+            {"Toughness", "tougher"},
+            {"Intelligence", "smarter"},
+            {"Willpower", "stronger-willed"},
+            {"Ego", "more compelling"}
+        };
+
+        public static readonly Dictionary<string, string[]> Categories = new Dictionary<string, string[]>{
+            {"Strength", new string[]{"feeble", "weak", "average", "strong", "beefy", "heckin' swole"}},
+            {"Agility", new string[]{"ponderous", "slow", "average", "quick", "olympian", "sonic fast"}},
+            {"Toughness", new string[]{"frail", "vulnerable", "average", "tough", "tanky", "slug sponge"}},
+            {"Intelligence", new string[]{"incompetent", "dull", "average", "smart", "brilliant", "galaxy brain"}},
+            {"Willpower", new string[]{"pushover", "gullible", "average", "strong-willed", "stalwart", "indefatigable"}},
+            {"Ego", new string[]{"intolerable", "abrasive", "average", "compelling", "magnificent", "deific"}}
+        };
+
+        public static readonly string[] CategoryColors = new string[] { "dark red", "red", "gray", "green", "orange", "extradimensional" };
+
+        public static readonly List<string> Attributes = new List<string> { "Strength", "Agility", "Toughness", "Intelligence", "Willpower", "Ego" };
+
         public static string PROPERTY => "CleverGirl_AIManageAttributes";
         public static string HONINGATTRIBUTES_PROPERTY => PROPERTY + "_HoningAttributes";
         public override void Register(GameObject Object) {
@@ -40,29 +62,6 @@ namespace XRL.World.Parts {
             return true;
         }
 
-        [NonSerialized]
-        public static Dictionary<string, string> Comparatives = new Dictionary<string, string>{
-            {"Strength", "stronger"},
-            {"Agility", "quicker"},
-            {"Toughness", "tougher"},
-            {"Intelligence", "smarter"},
-            {"Willpower", "stronger-willed"},
-            {"Ego", "more compelling"}
-        };
-
-        [NonSerialized]
-        public static Dictionary<string, string[]> Categories = new Dictionary<string, string[]>{
-            {"Strength", new string[]{"feeble", "weak", "average", "strong", "beefy", "heckin' swole"}},
-            {"Agility", new string[]{"ponderous", "slow", "average", "quick", "olympian", "sonic fast"}},
-            {"Toughness", new string[]{"frail", "vulnerable", "average", "tough", "tanky", "slug sponge"}},
-            {"Intelligence", new string[]{"incompetent", "dull", "average", "smart", "brilliant", "galaxy brain"}},
-            {"Willpower", new string[]{"pushover", "gullible", "average", "strong-willed", "stalwart", "indefatigable"}},
-            {"Ego", new string[]{"intolerable", "abrasive", "average", "compelling", "magnificent", "deific"}}
-        };
-
-        [NonSerialized]
-        public static string[] CategoryColors = new string[] { "dark red", "red", "gray", "green", "orange", "extradimensional" };
-
         public void SpendAP() {
             var apStat = ParentObject.Statistics["AP"];
 
@@ -75,13 +74,12 @@ namespace XRL.World.Parts {
             }
         }
 
-        public bool Manage() {
-            var changed = false;
-            var attributes = new List<string> { "Strength", "Agility", "Toughness", "Intelligence", "Willpower", "Ego" };
-            var strings = new List<string>(attributes.Count);
-            var keys = new List<char>(attributes.Count);
-            foreach (var attr in attributes) {
-                var prefix = HoningAttributes.Contains(attr) ? "+" : "-";
+        public bool ManageAttributesMenu() {
+            var optionNames = new List<string>(Attributes.Count);
+            var optionHotkeys = new List<char>(Attributes.Count);
+            var initiallySelectedOptions = new List<int>(Attributes.Count);
+
+            foreach (var attr in Attributes) {
                 var value = ParentObject.Statistics[attr].Value;
                 var bucket = value <= 6 ? 0 :
                              value <= 12 ? 1 :
@@ -89,51 +87,56 @@ namespace XRL.World.Parts {
                              value <= 25 ? 3 :
                              value <= 35 ? 4 :
                                            5;
-                strings.Add(prefix + " " + attr + ": {{" + CategoryColors[bucket] + "|" + Categories[attr][bucket] + "}}");
-                keys.Add(keys.Count >= 26 ? ' ' : (char)('a' + keys.Count));
-            }
 
-            while (true) {
-                var index = Popup.ShowOptionList(Options: strings.ToArray(),
-                                                Hotkeys: keys.ToArray(),
-                                                Intro: "What attributes should " + ParentObject.the + ParentObject.ShortDisplayName + " hone?",
-                                                AllowEscape: true);
-                if (index < 0) {
-                    if (HoningAttributes.Count == 0) {
-                        // don't bother listening if there's nothing to hear
-                        ParentObject.RemovePart<CleverGirl_AIManageAttributes>();
-                        foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                            follower.RemovePart<CleverGirl_AIManageAttributes>();
-                        }
-                    } else {
-                        // spend any ability points we have saved up
-                        SpendAP();
-                        foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                            var part = follower.RequirePart<CleverGirl_AIManageAttributes>();
-                            part.HoningAttributes = HoningAttributes;
-                            part.SpendAP();
-                        }
-                    }
-                    return changed;
-                }
-                if (strings[index][0] == '-') {
-                    // start honing this attribute
-                    var working = HoningAttributes;
-                    working.Add(attributes[index]);
-                    HoningAttributes = working;
-
-                    strings[index] = '+' + strings[index].Substring(1);
-                    changed = true;
-                } else if (strings[index][0] == '+') {
-                    // stop honing this attribute
-                    var working = HoningAttributes;
-                    _ = working.Remove(attributes[index]);
-                    HoningAttributes = working;
-
-                    strings[index] = '-' + strings[index].Substring(1);
-                    changed = true;
+                optionNames.Add(attr + ": {{" + CategoryColors[bucket] + "|" + Categories[attr][bucket] + "}}");
+                optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
+                if (HoningAttributes.Contains(attr)) {
+                    int optionIndex = optionNames.Count - 1;  // index that this skill will have in the menu
+                    initiallySelectedOptions.Add(optionIndex);
                 }
             }
+
+            // Start the menu
+            var yieldedResults = CleverGirl_Popup.YieldSeveral(
+                Title: ParentObject.the + ParentObject.ShortDisplayName,
+                Intro: "What skills should I focus on?",
+                Options: optionNames.ToArray(),
+                Hotkeys: optionHotkeys.ToArray(),
+                CenterIntro: true,
+                IntroIcon: ParentObject.RenderForUI(),
+                AllowEscape: true,
+                InitialSelections: initiallySelectedOptions
+            );
+
+            // Process selections as they happen until menu is closed
+            var changed = false;
+            foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
+                changed |= ModifyProperty(Attributes[result.Index], result.Value);
+            }
+
+            return changed;
+        }
+
+        /// <summary>
+        /// Add or remove an element from a list property
+        /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
+        /// </summary
+        private bool ModifyProperty(string element, bool add) {
+            // TODO: Make this generic as it's duplicated across 4 classes
+            List<string> property = HoningAttributes;
+            bool existedPrior = property.Contains(element);
+
+            if (add && !existedPrior) {
+                property.Add(element);
+                HoningAttributes = property;
+                return true;
+            } else if (!add && existedPrior) {
+                _ = property.Remove(element);
+                HoningAttributes = property;
+                return true;
+            }
+
+            return false;
         }
     }
 }

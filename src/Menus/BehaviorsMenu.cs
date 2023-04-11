@@ -5,7 +5,6 @@ namespace XRL.World.CleverGirl {
     using XRL.World.Parts;
 
     public class CleverGirl_BehaviorsMenu {
-        public static readonly string INDENT = "    ";
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Behaviors",
             Display = "manage {{hotkey|b}}ehaviors",
@@ -47,7 +46,7 @@ namespace XRL.World.CleverGirl {
         };
         public static readonly Utility.OptionAction AUTO_EQUIP_EXCEPTIONS = new Utility.OptionAction {
             Name = "Clever Girl - Set Auto Equip Exceptions",
-            Display = INDENT + "set auto pickup {{hotkey|e}}xceptions",
+            Display = "set auto pickup {{hotkey|e}}xceptions",
             Command = "CleverGirl_SetAutoEquipExceptions",
             Key = 'e',
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),

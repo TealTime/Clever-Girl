@@ -110,7 +110,7 @@ namespace XRL.World.Parts {
                     }
                 }
                 if (hasAllPowers) {
-                    ModifyLearningSkill(skillName, false);
+                    _ = ModifyProperty(skillName, false);  // Dont set 'changed' for this as it shouldn't punish the player
                 }
             }
 
@@ -143,12 +143,12 @@ namespace XRL.World.Parts {
         ///     [250] Power
         /// </example>
         /// </summary
-        public bool StartManageSkillsMenu() {
+        public bool ManageSkillsMenu() {
             var changed = false;
             var learnableSkills = new List<string>(SkillFactory.Factory.SkillList.Count);
             var optionNames = new List<string>(SkillFactory.Factory.SkillList.Count);
             var optionHotkeys = new List<char>(SkillFactory.Factory.SkillList.Count);
-            List<int> initialSelectedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
+            List<int> initiallySelectedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
             List<int> lockedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
 
             // Traverse all top-level skills (IE: Axe, Tactics, Acrobatics) 
@@ -203,7 +203,7 @@ namespace XRL.World.Parts {
                 }
                 optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
                 if (LearningSkills.Contains(skill.Name)) {
-                    initialSelectedOptions.Add(optionIndex);
+                    initiallySelectedOptions.Add(optionIndex);
                 }
             }
 
@@ -215,19 +215,19 @@ namespace XRL.World.Parts {
             // Start the menu
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: "What skills should I focus on?",
+                Intro: "What skills should I focus on learning?",
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
                 OnPost: CheckIfChoiceIsValid,
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initialSelectedOptions
+                InitialSelections: initiallySelectedOptions
             );
 
             // Process selections as they happen until menu is closed
             foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
-                changed |= ModifyLearningSkill(learnableSkills[result.Index], result.Value);
+                changed |= ModifyProperty(learnableSkills[result.Index], result.Value);
             }
 
             // If not learning any skills, stop listening for events
@@ -245,20 +245,26 @@ namespace XRL.World.Parts {
                     part.SpendSP();
                 }
             }
+
             return changed;
         }
 
-        private bool ModifyLearningSkill(string skill, bool learn) {
-            var working = LearningSkills;
-            bool wasLearning = working.Contains(skill);
+        /// <summary>
+        /// Add or remove an element from a list property
+        /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
+        /// </summary
+        private bool ModifyProperty(string element, bool add) {
+            // TODO: Make this generic as it's duplicated across 4 classes
+            List<string> property = LearningSkills;
+            bool existedPrior = property.Contains(element);
 
-            if (learn && !wasLearning) {
-                working.Add(skill);
-                LearningSkills = working;
+            if (add && !existedPrior) {
+                property.Add(element);
+                LearningSkills = property;
                 return true;
-            } else if (!learn && wasLearning) {
-                _ = working.Remove(skill);
-                LearningSkills = working;
+            } else if (!add && existedPrior) {
+                _ = property.Remove(element);
+                LearningSkills = property;
                 return true;
             }
 

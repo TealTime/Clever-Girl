@@ -259,7 +259,7 @@ namespace XRL.World.Parts {
             Utility.MaybeLog("Moved a RapidLevel from " + whichKey + " to " + instead);
         }
 
-        public bool Manage() {
+        public bool ManageMutationsMenu() {
             var changed = false;
             var mutations = new List<string>();
             var strings = new List<string>();
@@ -357,6 +357,28 @@ namespace XRL.World.Parts {
                     changed = true;
                 }
             }
+        }
+
+        /// <summary>
+        /// Add or remove an element from a list property
+        /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
+        /// </summary
+        private bool ModifyProperty(string element, bool add) {
+            // TODO: Make this generic as it's duplicated across 4 classes
+            List<string> property = FocusingMutations;
+            bool existedPrior = property.Contains(element);
+
+            if (add && !existedPrior) {
+                property.Add(element);
+                FocusingMutations = property;
+                return true;
+            } else if (!add && existedPrior) {
+                _ = property.Remove(element);
+                FocusingMutations = property;
+                return true;
+            }
+
+            return false;
         }
     }
 }

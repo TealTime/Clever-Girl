@@ -74,24 +74,24 @@ namespace XRL.World.Parts {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear");
                 }
             }
-            if (E.Command == CleverGirl_BehaviorsMenu.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (CleverGirl_BehaviorsMenu.Start(E.Actor, E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Auto Pickup/Equip Behavior");
-                }
-            }
             if (E.Command == CleverGirl_AIManageSkills.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIManageSkills>().StartManageSkillsMenu()) {
+                if (E.Item.RequirePart<CleverGirl_AIManageSkills>().ManageSkillsMenu()) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Skills");
                 }
             }
             if (E.Command == CleverGirl_AIManageAttributes.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIManageAttributes>().Manage()) {
+                if (E.Item.RequirePart<CleverGirl_AIManageAttributes>().ManageAttributesMenu()) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Attributes");
                 }
             }
             if (E.Command == CleverGirl_AIManageMutations.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIManageMutations>().Manage()) {
+                if (E.Item.RequirePart<CleverGirl_AIManageMutations>().ManageMutationsMenu()) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Mutations");
+                }
+            }
+            if (E.Command == CleverGirl_BehaviorsMenu.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (CleverGirl_BehaviorsMenu.Start(E.Actor, E.Item)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Auto Pickup/Equip Behavior");
                 }
             }
 
@@ -117,7 +117,7 @@ namespace XRL.World.Parts {
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.AUTO_EQUIP_EXCEPTIONS.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().StartAutoEquipBehaviorMenu(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().AutoEquipExceptionsMenu(E.Item)) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Exceptions");
                 }
             }

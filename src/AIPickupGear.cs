@@ -190,7 +190,7 @@ namespace XRL.World.Parts {
             return changed;
         }
 
-        public bool StartAutoEquipBehaviorMenu(GameObject companion) {
+        public bool AutoEquipExceptionsMenu(GameObject companion) {
             Utility.MaybeLog("Managing auto-equip for " + companion.DisplayNameOnlyStripped);
 
             // Double check whether or not the companion still has auto pickup enabled to avoid a potential NullReferenceException below
@@ -202,52 +202,42 @@ namespace XRL.World.Parts {
             var allBodyParts = companion.Body.GetParts();
             var optionNames = new List<string>(allBodyParts.Count);
             var optionHotkeys = new List<char>(allBodyParts.Count);
-            var initialSelections = new List<int>(allBodyParts.Count);
+            var initiallySelectedOptions = new List<int>(allBodyParts.Count);
+            var lockedOptionIndices = new List<int>();
 
-            // Grab initial menu selection state from stored ID's
-            int bodyPartIndex = 0;
-            var tempStoredIDs = companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs;
-            var invalidBodyPartIDs = new List<int>();
             foreach (var part in allBodyParts) {
-                // Check if part is equipable in case of fungal infections, horns, TrueKin zoomy tank feet, etc
-                if (!(part.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
-                    Utility.MaybeLog(part.ID + " Can't be unequipped");
-                    invalidBodyPartIDs.Add(part.ID);  // Add to the list so it appears as an immutable option later on
+                int optionIndex = optionNames.Count;  // index that this option will have in the final menu
 
-                    // If it's also stored: wipe it. Can happen if an already forbidden companion part becomes immutable.
-                    if (tempStoredIDs.Contains(part.ID)) {
-                        Utility.MaybeLog(part.ID + " Can't be unequipped AND it's ignored!");
-                        tempStoredIDs.RemoveAll(storedID => part.ID == storedID);
-                        companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs = tempStoredIDs;
-                    }
-                } else {
-                    if (tempStoredIDs.Contains(part.ID)) {
-                        initialSelections.Add(bodyPartIndex);
+                // Before creating option, make sure it's valid.
+                // Could be un-equipable in case of fungal infections, horns, TrueKin zoomy tank feet, etc.
+                if (!(part.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
+                    lockedOptionIndices.Add(optionIndex);
+
+                    // Check if a previously tracked part is now unequippable. If so, stop tracking it.
+                    if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID)) {
+                        _ = ModifyProperty(part.ID, false);  // Dont set 'changed' for this as it shouldn't punish the player
                     }
                 }
-                bodyPartIndex++;
-            }
 
-            // Format option texts and setup hotkeys
-            foreach (var part in allBodyParts) {
+                // Format and create the option
                 string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
                 string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
-                if (invalidBodyPartIDs.Contains(part.ID)) {
-                    optionNames.Add("{{y|" + part.Name + " : " + primary + " " + equipped + "}}");
-                } else {
-                    optionNames.Add(part.Name + " : " + primary + " " + equipped);
+                string optionText = part.Name + " : " + primary + " " + equipped;
+                // TODO: probably push this locking behavior into YieldSeveral()
+                if (lockedOptionIndices.Contains(part.ID)) {
+                    optionText = "{{y|" + optionText + "}}";
                 }
+                optionNames.Add(optionText);
                 optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
+
+                if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID)) {
+                    initiallySelectedOptions.Add(optionIndex);
+                }
             }
 
             // Menu selection post-hook function. Returning false will stop the current selection.
             bool CheckIfChoiceIsValid(int index) {
-                if (index >= 0 && index < allBodyParts.Count) {
-                    Utility.MaybeLog(allBodyParts[index].ID + " : " + invalidBodyPartIDs.Contains(allBodyParts[index].ID) + " [" + string.Join(", ", allBodyParts.Select(p => p.ID)) + "] -> " + string.Join(", ", invalidBodyPartIDs));
-                    return !invalidBodyPartIDs.Contains(allBodyParts[index].ID);
-                }
-                Utility.MaybeLog("Invalid choice index " + index);
-                return true;
+                return !lockedOptionIndices.Contains(index);
             };
 
             // Pop up a menu for the player to checklist body parts
@@ -260,39 +250,16 @@ namespace XRL.World.Parts {
                 CenterIntro: true,
                 IntroIcon: companion.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initialSelections
+                InitialSelections: initiallySelectedOptions
             );
 
             bool changed = false;
             foreach (CleverGirl_Popup.YieldResult result in enumerableMenu) {
-                if (result.Index >= allBodyParts.Count) {
-                    Utility.MaybeLog("Selecting body part outside of acceptable range! Abort!");
-                    return false;
-                }
-
                 int partID = allBodyParts[result.Index].ID;
-                if (result.Value) {
-                    if (!tempStoredIDs.Contains(partID)) {
-                        Utility.MaybeLog("Adding ID: " + partID + " to " + string.Join(",", tempStoredIDs));
-                        tempStoredIDs.Add(partID);
-                        changed = true;
-                    }
-                } else {
-                    if (tempStoredIDs.Contains(partID)) {
-                        Utility.MaybeLog("Removing ID: " + partID + " in " + string.Join(",", tempStoredIDs));
-                        tempStoredIDs.RemoveAll(storedID => partID == storedID);
-                        changed = true;
-                    }
-                }
-                if (changed) {
-                    companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs = tempStoredIDs;
-                }
+                changed |= ModifyProperty(partID, result.Value);
             }
 
-            Utility.MaybeLog("IgnoredBodyPartIDs: " + companion.GetPart<CleverGirl_AIPickupGear>().ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY));
-
             return changed;
-
         }
 
         /// <summary>
@@ -314,6 +281,28 @@ namespace XRL.World.Parts {
             public override int Compare(GameObject x, GameObject y) {
                 return Brain.CompareShields(x, y, POV) * (Reverse ? -1 : 1);
             }
+        }
+
+        /// <summary>
+        /// Add or remove an element from a list property
+        /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
+        /// </summary
+        private bool ModifyProperty(int element, bool add) {
+            // TODO: Make this generic as it's duplicated across 4 classes
+            List<int> property = IgnoredBodyPartIDs;
+            bool existedPrior = property.Contains(element);
+
+            if (add && !existedPrior) {
+                property.Add(element);
+                IgnoredBodyPartIDs = property;
+                return true;
+            } else if (!add && existedPrior) {
+                _ = property.Remove(element);
+                IgnoredBodyPartIDs = property;
+                return true;
+            }
+
+            return false;
         }
     }
 }
