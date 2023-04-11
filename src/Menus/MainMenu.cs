@@ -58,7 +58,7 @@ namespace XRL.World.CleverGirl {
 
             bool result = false;
             result = CleverGirl_BasicMenu.Start(leader, companion, OPTIONS,
-                                                Title: companion.the + companion.ShortDisplayName,
+                                                Title: companion.ShortDisplayName,
                                                 Intro: remark,
                                                 centerIntro: true,
                                                 IntroIcon: companion.RenderForUI(),

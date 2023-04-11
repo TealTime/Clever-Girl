@@ -73,7 +73,7 @@ namespace XRL.World.CleverGirl {
 
         public static bool Start(GameObject leader, GameObject companion) {
             return CleverGirl_BasicMenu.Start(leader, companion, OPTIONS,
-                                              Title: companion.the + companion.ShortDisplayName,
+                                              Title: companion.ShortDisplayName,
                                               centerIntro: true,
                                               IntroIcon: companion.RenderForUI(),
                                               AllowEscape: true);
