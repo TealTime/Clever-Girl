@@ -74,13 +74,13 @@ namespace XRL.World.Parts {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear");
                 }
             }
-            if (E.Command == CleverGirl_AutoPickupEquipMenu.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (CleverGirl_AutoPickupEquipMenu.Start(E.Actor, E.Item)) {
+            if (E.Command == CleverGirl_BehaviorsMenu.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (CleverGirl_BehaviorsMenu.Start(E.Actor, E.Item)) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Auto Pickup/Equip Behavior");
                 }
             }
             if (E.Command == CleverGirl_AIManageSkills.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIManageSkills>().Manage()) {
+                if (E.Item.RequirePart<CleverGirl_AIManageSkills>().StartManageSkillsMenu()) {
                     ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Skills");
                 }
             }
@@ -96,29 +96,29 @@ namespace XRL.World.Parts {
             }
 
             /** AutoPickupEquipMenu Options **/
-            if (E.Command == CleverGirl_AutoPickupEquipMenu.ENABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+            if (E.Command == CleverGirl_BehaviorsMenu.ENABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetAutoPickupGear(E.Item, true)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Gear Pickup");
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Auto Gear Pickup");
                 }
             }
-            if (E.Command == CleverGirl_AutoPickupEquipMenu.DISABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+            if (E.Command == CleverGirl_BehaviorsMenu.DISABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetAutoPickupGear(E.Item, false)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Gear Pickup");
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Auto Gear Pickup");
                 }
             }
-            if (E.Command == CleverGirl_AutoPickupEquipMenu.FOLLOWER_ENABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+            if (E.Command == CleverGirl_BehaviorsMenu.FOLLOWER_ENABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(E.Item, true)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Follower Gear Pickup");
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Follower Auto Gear Pickup");
                 }
             }
-            if (E.Command == CleverGirl_AutoPickupEquipMenu.FOLLOWER_DISABLE.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+            if (E.Command == CleverGirl_BehaviorsMenu.FOLLOWER_DISABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(E.Item, false)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Follower Gear Pickup");
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Follower Auto Gear Pickup");
                 }
             }
-            if (E.Command == CleverGirl_AutoPickupEquipMenu.AUTO_EQUIP_BEHAVIOR.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SpecifyForbiddenEquipmentSlots(E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Behavior");
+            if (E.Command == CleverGirl_BehaviorsMenu.AUTO_EQUIP_EXCEPTIONS.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().StartAutoEquipBehaviorMenu(E.Item)) {
+                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Exceptions");
                 }
             }
 

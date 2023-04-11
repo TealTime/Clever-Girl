@@ -3,7 +3,7 @@
 /// The function(s)/method(s) in this file are intended to be temporary, with the idea in mind that they may or may not be
 /// eclipsed by a new developer implementation at some point.
 
-namespace XRL.World.CleverGirl.NativeCodeOverloads {
+namespace XRL.World.CleverGirl.Overloads {
     using System;
     using System.Collections.Generic;
     using System.Linq;

@@ -37,10 +37,10 @@ namespace XRL.World.CleverGirl {
         public static readonly List<Utility.OptionAction> OPTIONS = new List<Utility.OptionAction> {
             CleverGirl_Feed.ACTION,
             CleverGirl_ManageGear.ACTION,
-            CleverGirl_AutoPickupEquipMenu.ACTION,
             CleverGirl_AIManageSkills.ACTION,
             CleverGirl_AIManageAttributes.ACTION,
             CleverGirl_AIManageMutations.ACTION,
+            CleverGirl_BehaviorsMenu.ACTION,
         };
 
         public static bool Start(GameObject leader, GameObject companion) {

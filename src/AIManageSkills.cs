@@ -2,9 +2,9 @@ namespace XRL.World.Parts {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using XRL.UI;
     using XRL.World.CleverGirl;
     using XRL.World.Skills;
+    using XRL.World.CleverGirl.Overloads;
 
     [Serializable]
     public class CleverGirl_AIManageSkills : CleverGirl_INoSavePart {
@@ -35,7 +35,7 @@ namespace XRL.World.Parts {
         /// <summary>
         /// these skills don't make sense for companions
         /// </summary>
-        public static HashSet<string> IgnoreSkills = new HashSet<string>{
+        public static readonly HashSet<string> IgnoreSkills = new HashSet<string>{
             "Cooking and Gathering",
             "Customs and Folklore",
             "Tinkering",
@@ -45,7 +45,7 @@ namespace XRL.World.Parts {
             "Mind over Body",
         };
 
-        public static HashSet<string> CombatSkills = new HashSet<string>{
+        public static readonly HashSet<string> CombatSkills = new HashSet<string>{
             "Axe",
             "Bow and Rifle",
             "Cudgel",
@@ -110,11 +110,9 @@ namespace XRL.World.Parts {
                     }
                 }
                 if (hasAllPowers) {
-                    toDrop.Add(skillName);
+                    ModifyLearningSkill(skillName, false);
                 }
             }
-            // drop skills that are already complete
-            LearningSkills = LearningSkills.Except(toDrop).ToList();
 
             if (0 < pool.Count) {
                 var which = pool.GetRandomElement(Utility.Random(this));
@@ -133,24 +131,43 @@ namespace XRL.World.Parts {
             }
         }
 
-        public bool Manage() {
+        /// <summary>
+        /// Start the Manage Skills Menu.
+        ///
+        /// <example>
+        /// Note to future maintainers who may or may not be as confused as me, 
+        /// the difference between a Power and a Skill is illustrated as such:
+        ///
+        /// [100] Skill      <-- TOP level thing you buy with SP
+        ///     [150] Power  <-- SUB level thing you buy with SP
+        ///     [250] Power
+        /// </example>
+        /// </summary
+        public bool StartManageSkillsMenu() {
             var changed = false;
-            var skills = new List<string>(SkillFactory.Factory.SkillList.Count);
-            var strings = new List<string>(SkillFactory.Factory.SkillList.Count);
-            var keys = new List<char>(SkillFactory.Factory.SkillList.Count);
-            foreach (var Skill in SkillFactory.Factory.SkillList.Values) {
-                if (IgnoreSkills.Contains(Skill.Name)) {
+            var learnableSkills = new List<string>(SkillFactory.Factory.SkillList.Count);
+            var optionNames = new List<string>(SkillFactory.Factory.SkillList.Count);
+            var optionHotkeys = new List<char>(SkillFactory.Factory.SkillList.Count);
+            List<int> initialSelectedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
+            List<int> lockedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
+
+            // Traverse all top-level skills (IE: Axe, Tactics, Acrobatics) 
+            foreach (var skill in SkillFactory.Factory.SkillList.Values) {
+                if (IgnoreSkills.Contains(skill.Name)) {
                     continue;
                 }
-                if (!ParentObject.IsCombatObject() && CombatSkills.Contains(Skill.Name)) {
+                if (!ParentObject.IsCombatObject() && CombatSkills.Contains(skill.Name)) {
                     continue;
                 }
-                skills.Add(Skill.Name);
-                var canLearnSkill = Skill.MeetsRequirements(ParentObject);
-                var havePowers = 0;
-                var lockedPowers = 0;
-                var totalPowers = 0;
-                foreach (var Power in Skill.Powers.Values) {
+                Utility.MaybeLog("Looking at " + skill.Name);
+                learnableSkills.Add(skill.Name);
+                var canLearnSkill = skill.MeetsRequirements(ParentObject);
+                int learnedPowers = 0;
+                int lockedPowers = 0;
+                int totalPowers = 0;
+                // Traverse all powers within a skill (IE: Hurdle, Charge, Shield Slam) 
+                foreach (var Power in skill.Powers.Values) {
+                    Utility.MaybeLog("Looking at " + Power.Name);
                     if (Power.Cost == 0 && !Power.MeetsRequirements(ParentObject)) {
                         canLearnSkill = false;
                     }
@@ -161,65 +178,91 @@ namespace XRL.World.Parts {
                         continue;
                     }
                     if (ParentObject.HasSkill(Power.Class)) {
-                        ++havePowers;
+                        ++learnedPowers;
                     } else if (!Power.MeetsRequirements(ParentObject)) {
                         ++lockedPowers;
                     }
                     ++totalPowers;
                 }
-                if (!canLearnSkill && !ParentObject.HasSkill(Skill.Class)) {
-                    lockedPowers = totalPowers - havePowers;
+
+                Utility.MaybeLog("Finished looking at powers. Now formatting " + skill.Name + " option.");
+                if (!canLearnSkill && !ParentObject.HasSkill(skill.Class)) {
+                    lockedPowers = totalPowers - learnedPowers;
                 }
-                var unlockedPowers = totalPowers - lockedPowers;
-                var prefix = havePowers == totalPowers ? "*" : LearningSkills.Contains(Skill.Name) ? "+" : "-";
-                var suffix = lockedPowers == 0 ? "" : "{{r| (" + lockedPowers + " locked)}}";
-                strings.Add(prefix + " " + Skill.Name + ": " + havePowers + "/" + unlockedPowers + suffix);
-                keys.Add(keys.Count >= 26 ? ' ' : (char)('a' + keys.Count));
-            }
+                int unlockablePowers = totalPowers - lockedPowers;
+                string text = string.Format("[{0}/{1}] {2}", learnedPowers, unlockablePowers, skill.Name);
+                string suffix = lockedPowers == 0 ? "" : "{{r| (" + lockedPowers + " locked)}}";
 
-            while (true) {
-                var index = Popup.ShowOptionList(Options: strings.ToArray(),
-                                                Hotkeys: keys.ToArray(),
-                                                Intro: "What skills should " + ParentObject.the + ParentObject.ShortDisplayName + " learn?",
-                                                AllowEscape: true);
-                if (index < 0) {
-                    if (LearningSkills.Count == 0) {
-                        // don't bother listening if there's nothing to hear
-                        ParentObject.RemovePart<CleverGirl_AIManageSkills>();
-                        foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                            follower.RemovePart<CleverGirl_AIManageSkills>();
-                        }
-                    } else {
-                        // spend any skill points we have saved up
-                        SpendSP();
-                        foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                            var part = follower.RequirePart<CleverGirl_AIManageSkills>();
-                            part.LearningSkills = LearningSkills;
-                            part.SpendSP();
-                        }
-                    }
-                    return changed;
+                // highlight option in 
+                int optionIndex = optionNames.Count;  // index that this skill will have in the menu
+                if (learnedPowers == totalPowers) {
+                    optionNames.Add("{{G|" + text + suffix + "}}");
+                    lockedOptions.Add(optionIndex);
+                } else {
+                    optionNames.Add(text + suffix);
                 }
-                if (strings[index][0] == '*') {
-                    // ignore
-                } else if (strings[index][0] == '-') {
-                    // start learning this skill
-                    var working = LearningSkills;
-                    working.Add(skills[index]);
-                    LearningSkills = working;
-
-                    strings[index] = '+' + strings[index].Substring(1);
-                    changed = true;
-                } else if (strings[index][0] == '+') {
-                    // stop learning this skill
-                    var working = LearningSkills;
-                    _ = working.Remove(skills[index]);
-                    LearningSkills = working;
-
-                    strings[index] = '-' + strings[index].Substring(1);
-                    changed = true;
+                optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
+                if (LearningSkills.Contains(skill.Name)) {
+                    initialSelectedOptions.Add(optionIndex);
                 }
             }
+
+            // Menu selection post-hook function. Returning false will stop the current selection.
+            bool CheckIfChoiceIsValid(int optionIndex) {
+                return !lockedOptions.Contains(optionIndex);
+            };
+
+            // Start the menu
+            var yieldedResults = CleverGirl_Popup.YieldSeveral(
+                Title: ParentObject.the + ParentObject.ShortDisplayName,
+                Intro: "What skills should I focus on?",
+                Options: optionNames.ToArray(),
+                Hotkeys: optionHotkeys.ToArray(),
+                OnPost: CheckIfChoiceIsValid,
+                CenterIntro: true,
+                IntroIcon: ParentObject.RenderForUI(),
+                AllowEscape: true,
+                InitialSelections: initialSelectedOptions
+            );
+
+            // Process selections as they happen until menu is closed
+            foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
+                changed |= ModifyLearningSkill(learnableSkills[result.Index], result.Value);
+            }
+
+            // If not learning any skills, stop listening for events
+            if (LearningSkills.Count == 0) {
+                ParentObject.RemovePart<CleverGirl_AIManageSkills>();
+                foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
+                    follower.RemovePart<CleverGirl_AIManageSkills>();
+                }
+            } else {
+                // spend any skill points we have saved up
+                SpendSP();
+                foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
+                    var part = follower.RequirePart<CleverGirl_AIManageSkills>();
+                    part.LearningSkills = LearningSkills;
+                    part.SpendSP();
+                }
+            }
+            return changed;
+        }
+
+        private bool ModifyLearningSkill(string skill, bool learn) {
+            var working = LearningSkills;
+            bool wasLearning = working.Contains(skill);
+
+            if (learn && !wasLearning) {
+                working.Add(skill);
+                LearningSkills = working;
+                return true;
+            } else if (!learn && wasLearning) {
+                _ = working.Remove(skill);
+                LearningSkills = working;
+                return true;
+            }
+
+            return false;
         }
     }
 }

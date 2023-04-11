@@ -4,51 +4,52 @@ namespace XRL.World.CleverGirl {
     using System.Linq;
     using XRL.World.Parts;
 
-    public class CleverGirl_AutoPickupEquipMenu {
+    public class CleverGirl_BehaviorsMenu {
+        public static readonly string INDENT = "    ";
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
-            Name = "Clever Girl - Manage Gear Pickup",
-            Display = "manage gear auto {{hotkey|p}}ickup/equip behavior",
-            Command = "CleverGirl_ManageGearPickup",
-            Key = 'p',
+            Name = "Clever Girl - Manage Behaviors",
+            Display = "manage {{hotkey|b}}ehaviors",
+            Command = "CleverGirl_ManageBehaviors",
+            Key = 'b',
             Valid = Utility.OptionAction.Adjacent,
         };
-        public static readonly Utility.OptionAction ENABLE = new Utility.OptionAction {
-            Name = "Clever Girl - Enable Gear Pickup",
-            Display = "{{y|[ ]}} auto {{hotkey|p}}ickup/equip gear",
-            Command = "CleverGirl_EnableGearPickup",
-            Key = 'p',
+        public static readonly Utility.OptionAction ENABLE_PICKUP = new Utility.OptionAction {
+            Name = "Clever Girl - Enable Auto Gear Pickup",
+            Display = "{{y|[ ]}} enable {{hotkey|a}}uto pickup",
+            Command = "CleverGirl_EnableAutoGearPickup",
+            Key = 'a',
             Valid = (leader, companion) => leader == The.Player && !companion.HasPart(typeof(CleverGirl_AIPickupGear)),
             InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
-        public static readonly Utility.OptionAction DISABLE = new Utility.OptionAction {
-            Name = "Clever Girl - Disable Gear Pickup",
-            Display = "{{W|[þ]}} auto {{hotkey|p}}ickup/equip gear",
-            Command = "CleverGirl_DisableGearPickup",
-            Key = 'p',
+        public static readonly Utility.OptionAction DISABLE_PICKUP = new Utility.OptionAction {
+            Name = "Clever Girl - Disable Auto Gear Pickup",
+            Display = "{{W|[þ]}} disable {{hotkey|a}}uto pickup",
+            Command = "CleverGirl_DisableAutoGearPickup",
+            Key = 'a',
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
             InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
-        public static readonly Utility.OptionAction FOLLOWER_ENABLE = new Utility.OptionAction {
-            Name = "Clever Girl - Enable Follower Gear Pickup",
-            Display = "{{y|[ ]}} auto pickup/equip gear ({{hotkey|f}}ollowers)",
-            Command = "CleverGirl_EnableFollowerGearPickup",
+        public static readonly Utility.OptionAction FOLLOWER_ENABLE_PICKUP = new Utility.OptionAction {
+            Name = "Clever Girl - Enable Follower Auto Gear Pickup",
+            Display = "{{y|[ ]}} enable {{hotkey|f}}ollower auto pickup",
+            Command = "CleverGirl_EnableFollowerAutoGearPickup",
             Key = 'f',
             Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => !obj.HasPart(nameof(CleverGirl_AIPickupGear))),
             InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
-        public static readonly Utility.OptionAction FOLLOWER_DISABLE = new Utility.OptionAction {
-            Name = "Clever Girl - Disable Follower Gear Pickup",
-            Display = "{{W|[þ]}} auto pickup/equip gear ({{hotkey|f}}ollowers)",
-            Command = "CleverGirl_DisableFollowerGearPickup",
+        public static readonly Utility.OptionAction FOLLOWER_DISABLE_PICKUP = new Utility.OptionAction {
+            Name = "Clever Girl - Disable Follower Auto Gear Pickup",
+            Display = "{{W|[þ]}} disable {{hotkey|f}}ollower auto pickup",
+            Command = "CleverGirl_DisableFollowerAutoGearPickup",
             Key = 'f',
             Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => obj.HasPart(nameof(CleverGirl_AIPickupGear))),
             InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
-        public static readonly Utility.OptionAction AUTO_EQUIP_BEHAVIOR = new Utility.OptionAction {
-            Name = "Clever Girl - Specify Forbidden Equipment Slots",
-            Display = "{{hotkey|s}}pecify forbidden equipment slots",
-            Command = "CleverGirl_SpecifyForbiddenEquipmentSlots",
-            Key = 's',
+        public static readonly Utility.OptionAction AUTO_EQUIP_EXCEPTIONS = new Utility.OptionAction {
+            Name = "Clever Girl - Set Auto Equip Exceptions",
+            Display = INDENT + "set auto pickup {{hotkey|e}}xceptions",
+            Command = "CleverGirl_SetAutoEquipExceptions",
+            Key = 'e',
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
             InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
         };
@@ -64,11 +65,11 @@ namespace XRL.World.CleverGirl {
         **/
 
         public static readonly List<Utility.OptionAction> OPTIONS = new List<Utility.OptionAction> {
-            ENABLE,
-            DISABLE,
-            FOLLOWER_ENABLE,
-            FOLLOWER_DISABLE,
-            AUTO_EQUIP_BEHAVIOR,
+            ENABLE_PICKUP,
+            DISABLE_PICKUP,
+            FOLLOWER_ENABLE_PICKUP,
+            FOLLOWER_DISABLE_PICKUP,
+            AUTO_EQUIP_EXCEPTIONS,
         };
 
         public static bool Start(GameObject leader, GameObject companion) {

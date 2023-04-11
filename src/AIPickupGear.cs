@@ -4,7 +4,7 @@ namespace XRL.World.Parts {
     using System.Linq;
     using XRL.World.AI.GoalHandlers;
     using XRL.World.CleverGirl;
-    using XRL.World.CleverGirl.NativeCodeOverloads;
+    using XRL.World.CleverGirl.Overloads;
     using XRL.World.CleverGirl.BackwardsCompatibility;
     using XRL.World.Anatomy;
     using Qud.API;
@@ -190,7 +190,7 @@ namespace XRL.World.Parts {
             return changed;
         }
 
-        public bool SpecifyForbiddenEquipmentSlots(GameObject companion) {
+        public bool StartAutoEquipBehaviorMenu(GameObject companion) {
             Utility.MaybeLog("Managing auto-equip for " + companion.DisplayNameOnlyStripped);
 
             // Double check whether or not the companion still has auto pickup enabled to avoid a potential NullReferenceException below
@@ -252,11 +252,11 @@ namespace XRL.World.Parts {
 
             // Pop up a menu for the player to checklist body parts
             var enumerableMenu = CleverGirl_Popup.YieldSeveral(
-                Title: "Auto Equip Behavior",
+                Title: companion.the + companion.ShortDisplayName,
+                Intro: "What slots should I skip when auto-equipping?",
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
                 OnPost: CheckIfChoiceIsValid,
-                Intro: "Select forbidden auto equipment slots",
                 CenterIntro: true,
                 IntroIcon: companion.RenderForUI(),
                 AllowEscape: true,
@@ -265,13 +265,13 @@ namespace XRL.World.Parts {
 
             bool changed = false;
             foreach (CleverGirl_Popup.YieldResult result in enumerableMenu) {
-                if (result.index >= allBodyParts.Count) {
+                if (result.Index >= allBodyParts.Count) {
                     Utility.MaybeLog("Selecting body part outside of acceptable range! Abort!");
                     return false;
                 }
 
-                int partID = allBodyParts[result.index].ID;
-                if (result.value) {
+                int partID = allBodyParts[result.Index].ID;
+                if (result.Value) {
                     if (!tempStoredIDs.Contains(partID)) {
                         Utility.MaybeLog("Adding ID: " + partID + " to " + string.Join(",", tempStoredIDs));
                         tempStoredIDs.Add(partID);
