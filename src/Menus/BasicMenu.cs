@@ -77,7 +77,6 @@ namespace XRL.World.CleverGirl {
             var filteredOptions = new List<Utility.OptionAction>(allOptions.Count);
 
 
-            bool changed = false;
             // Gear management menu loop
             while (true) {
                 SetupOptions(leader, companion, allOptions, ref filteredOptions, ref optionNames, ref optionHotkeys, ref optionValidities);
@@ -106,11 +105,11 @@ namespace XRL.World.CleverGirl {
                 if (index < 0) {
                     break;
                 } else if (optionValidities[index]) {
-                    changed |= leader.HandleEvent(CleverGirl_MenuSelectEvent.FromPool(leader, companion, filteredOptions[index].Command));
+                    _ = leader.HandleEvent(CleverGirl_MenuSelectEvent.FromPool(leader, companion, filteredOptions[index].Command));
                 }
             }
 
-            return changed;
+            return false;  // Navigating menus shouldn't cost player energy
         }
     }
 }

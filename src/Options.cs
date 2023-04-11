@@ -7,6 +7,7 @@ namespace XRL.World.CleverGirl.Globals {
     // https://bitbucket.org/bbucklew/cavesofqud-public-issue-tracker/issues/4118
     // They should be removed after that is fixed.
     public static class Options {
+        public static bool DirectingCompanionCostsEnergy => GetOption("CleverGirl_DirectingCompanionCostsEnergy").EqualsNoCase("Yes") || string.IsNullOrEmpty(GetOption("CleverGirl_DirectingCompanionCostsEnergy"));
         public static bool ShowSillyText => GetOption("CleverGirl_ShowSillyText").EqualsNoCase("Yes") || string.IsNullOrEmpty(GetOption("CleverGirl_ShowSillyText"));
     }
 }

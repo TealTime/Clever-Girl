@@ -5,6 +5,7 @@ namespace XRL.World.Parts {
     using XRL.World.Capabilities;
     using XRL.World.CleverGirl;
     using XRL.World.Parts.CleverGirl;
+    using Options = XRL.World.CleverGirl.Globals.Options;
 
     [Serializable]
     public class CleverGirl_EventListener : CleverGirl_INoSavePart {
@@ -37,9 +38,7 @@ namespace XRL.World.Parts {
         public override bool HandleEvent(InventoryActionEvent E) {
             if (E.Command == CleverGirl_MainMenu.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 // TODO: One time Popup to explain/hand-wave Clever Girl's existence in the Qud universe in a fun way
-                if (CleverGirl_MainMenu.Start(E.Actor, E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Clever Girl Main Menu");
-                }
+                return CleverGirl_MainMenu.Start(E.Actor, E.Item);
             }
             if (E.Command == CleverGirl_Feed.COOKING_ACTION.Command) {
                 if (Utility.CollectNearbyCompanions(E.Actor).Count == 0) {
@@ -48,14 +47,14 @@ namespace XRL.World.Parts {
                 } else {
                     int EnergyCost = 100;
                     if (CleverGirl_Feed.DoFeed(E.Actor, ref EnergyCost)) {
-                        ParentObject.CompanionDirectionEnergyCost(E.Item, EnergyCost, "Feed Companions");
+                        CompanionDirectionEnergyCost(E.Item, EnergyCost, "Feed Companions");
                     }
                 }
             }
             if (E.Command == CyberneticsTerminal2_HandleEvent_GetInventoryActionsEvent_Patch.ACTION.Command) {
                 GameObject companion = null;
                 if (InterfaceCompanions.DoInterface(E, ref companion)) {
-                    ParentObject.CompanionDirectionEnergyCost(companion, 100, "Interface");
+                    CompanionDirectionEnergyCost(companion, 100, "Interface");
                 }
             }
 
@@ -66,59 +65,57 @@ namespace XRL.World.Parts {
             /** MainMenu Options **/
             if (E.Command == CleverGirl_Feed.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (CleverGirl_Feed.DoFeed(E.Actor, E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Feed");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Feed");
                 }
             }
             if (E.Command == CleverGirl_ManageGear.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (CleverGirl_ManageGear.Manage(E.Actor, E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear");
                 }
             }
             if (E.Command == CleverGirl_AIManageSkills.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIManageSkills>().ManageSkillsMenu()) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Skills");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Manage Skills");
                 }
             }
             if (E.Command == CleverGirl_AIManageAttributes.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIManageAttributes>().ManageAttributesMenu()) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Attributes");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Manage Attributes");
                 }
             }
             if (E.Command == CleverGirl_AIManageMutations.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIManageMutations>().ManageMutationsMenu()) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Mutations");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Manage Mutations");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.ACTION.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (CleverGirl_BehaviorsMenu.Start(E.Actor, E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Manage Gear Auto Pickup/Equip Behavior");
-                }
+                return CleverGirl_BehaviorsMenu.Start(E.Actor, E.Item);
             }
 
             /** AutoPickupEquipMenu Options **/
             if (E.Command == CleverGirl_BehaviorsMenu.ENABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetAutoPickupGear(E.Item, true)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Auto Gear Pickup");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Enable Auto Gear Pickup");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.DISABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetAutoPickupGear(E.Item, false)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Auto Gear Pickup");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Disable Auto Gear Pickup");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.FOLLOWER_ENABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(E.Item, true)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Enable Follower Auto Gear Pickup");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Enable Follower Auto Gear Pickup");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.FOLLOWER_DISABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(E.Item, false)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Disable Follower Auto Gear Pickup");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Disable Follower Auto Gear Pickup");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.AUTO_EQUIP_EXCEPTIONS.Command && ParentObject.CheckCompanionDirection(E.Item)) {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().AutoEquipExceptionsMenu(E.Item)) {
-                    ParentObject.CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Exceptions");
+                    CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Exceptions");
                 }
             }
 
@@ -148,6 +145,16 @@ namespace XRL.World.Parts {
                             Key: action.Key,
                             FireOnActor: true);
             return true;
+        }
+
+        /// <summary>
+        /// Wrapper function around GameObject.CompanionDirectionEnergyCost to allow players to toggle this behavior.
+        /// Each time you direct your companion, Clever-Girl usually subtracts 100 energy (becomes 10 for Telepathy).
+        /// </summary>
+        private void CompanionDirectionEnergyCost(GameObject GO, int EnergyCost, string Action) {
+            if (Options.DirectingCompanionCostsEnergy) {
+                ParentObject.CompanionDirectionEnergyCost(GO, EnergyCost, Action);
+            }
         }
     }
 }
