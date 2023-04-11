@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<options>
+
+  <option ID="CleverGirl_ShowSillyText" DisplayText="Show silly and possibly immersion breaking dialog" Category="Clever-Girl Mod" Type="Checkbox" Default="Yes"></option>
+
+</options>

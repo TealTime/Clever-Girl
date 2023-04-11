@@ -4,8 +4,9 @@ namespace XRL.World.Parts {
     using System.Collections.Generic;
     using System.Linq;
     using XRL.UI;
-    using XRL.World.CleverGirl;
     using XRL.World.Parts.Mutation;
+    using XRL.World.CleverGirl;
+    using Options = XRL.World.CleverGirl.Globals.Options;
 
     [Serializable]
     [HarmonyPatch]
@@ -302,10 +303,11 @@ namespace XRL.World.Parts {
             }
 
             while (true) {
-                var index = Popup.ShowOptionList(Options: strings.ToArray(),
-                                                Hotkeys: keys.ToArray(),
-                                                Intro: "What mutations should " + ParentObject.the + ParentObject.ShortDisplayName + " advance?",
-                                                AllowEscape: true);
+                var index = Popup.ShowOptionList(Title: ParentObject.the + ParentObject.ShortDisplayName,
+                                                 Options: strings.ToArray(),
+                                                 Hotkeys: keys.ToArray(),
+                                                 Intro: Options.ShowSillyText ? "Which mutations should I invest in?" : "Select mutation focus.",
+                                                 AllowEscape: true);
                 if (index < 0) {
                     if (FocusingMutations.Count == 0 && !WantNewMutations && !FollowersWantNewMutations) {
                         // don't bother listening if there's nothing to hear

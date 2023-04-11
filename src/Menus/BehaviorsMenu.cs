@@ -14,7 +14,7 @@ namespace XRL.World.CleverGirl {
         };
         public static readonly Utility.OptionAction ENABLE_PICKUP = new Utility.OptionAction {
             Name = "Clever Girl - Enable Auto Gear Pickup",
-            Display = "{{y|[ ]}} enable {{hotkey|a}}uto pickup",
+            Display = "{{y|[ ]}} toggle {{hotkey|a}}uto pickup",
             Command = "CleverGirl_EnableAutoGearPickup",
             Key = 'a',
             Valid = (leader, companion) => leader == The.Player && !companion.HasPart(typeof(CleverGirl_AIPickupGear)),
@@ -22,7 +22,7 @@ namespace XRL.World.CleverGirl {
         };
         public static readonly Utility.OptionAction DISABLE_PICKUP = new Utility.OptionAction {
             Name = "Clever Girl - Disable Auto Gear Pickup",
-            Display = "{{W|[þ]}} disable {{hotkey|a}}uto pickup",
+            Display = "{{W|[þ]}} toggle {{hotkey|a}}uto pickup",
             Command = "CleverGirl_DisableAutoGearPickup",
             Key = 'a',
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
@@ -30,7 +30,7 @@ namespace XRL.World.CleverGirl {
         };
         public static readonly Utility.OptionAction FOLLOWER_ENABLE_PICKUP = new Utility.OptionAction {
             Name = "Clever Girl - Enable Follower Auto Gear Pickup",
-            Display = "{{y|[ ]}} enable {{hotkey|f}}ollower auto pickup",
+            Display = "{{y|[ ]}} toggle {{hotkey|f}}ollower auto pickup",
             Command = "CleverGirl_EnableFollowerAutoGearPickup",
             Key = 'f',
             Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => !obj.HasPart(nameof(CleverGirl_AIPickupGear))),
@@ -38,7 +38,7 @@ namespace XRL.World.CleverGirl {
         };
         public static readonly Utility.OptionAction FOLLOWER_DISABLE_PICKUP = new Utility.OptionAction {
             Name = "Clever Girl - Disable Follower Auto Gear Pickup",
-            Display = "{{W|[þ]}} disable {{hotkey|f}}ollower auto pickup",
+            Display = "{{W|[þ]}} toggle {{hotkey|f}}ollower auto pickup",
             Command = "CleverGirl_DisableFollowerAutoGearPickup",
             Key = 'f',
             Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => obj.HasPart(nameof(CleverGirl_AIPickupGear))),

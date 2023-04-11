@@ -2,9 +2,10 @@ namespace XRL.World.Parts {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using XRL.World.CleverGirl;
     using XRL.World.Skills;
+    using XRL.World.CleverGirl;
     using XRL.World.CleverGirl.Overloads;
+    using Options = XRL.World.CleverGirl.Globals.Options;
 
     [Serializable]
     public class CleverGirl_AIManageSkills : CleverGirl_INoSavePart {
@@ -215,7 +216,7 @@ namespace XRL.World.Parts {
             // Start the menu
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: "What skills should I focus on learning?",
+                Intro: Options.ShowSillyText ? "What skills should I focus on learning?" : "Select skill focus.",
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
                 OnPost: CheckIfChoiceIsValid,

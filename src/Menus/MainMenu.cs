@@ -4,6 +4,8 @@ namespace XRL.World.CleverGirl {
     using System.Collections.Generic;
     using System.Linq;
     using XRL.World.Parts;
+    using Options = XRL.World.CleverGirl.Globals.Options;
+
 
     public class CleverGirl_MainMenu {
 
@@ -51,7 +53,7 @@ namespace XRL.World.CleverGirl {
             }
 
             Utility.MaybeLog(string.Join(", ", rngSequence) + " [" + rngIndex + "] ");
-            string remark = REMARKS[rngSequence[rngIndex]](leader, companion);
+            string remark = Options.ShowSillyText ? REMARKS[rngSequence[rngIndex]](leader, companion) : "";
             rngIndex++;
 
             bool result = false;

@@ -4,10 +4,11 @@ namespace XRL.World.Parts {
     using System.Linq;
     using XRL.World.AI.GoalHandlers;
     using XRL.World.CleverGirl;
-    using XRL.World.CleverGirl.Overloads;
     using XRL.World.CleverGirl.BackwardsCompatibility;
+    using XRL.World.CleverGirl.Overloads;
     using XRL.World.Anatomy;
     using Qud.API;
+    using Options = XRL.World.CleverGirl.Globals.Options;
 
     [Serializable]
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
@@ -243,7 +244,7 @@ namespace XRL.World.Parts {
             // Pop up a menu for the player to checklist body parts
             var enumerableMenu = CleverGirl_Popup.YieldSeveral(
                 Title: companion.the + companion.ShortDisplayName,
-                Intro: "What slots should I skip when auto-equipping?",
+                Intro: Options.ShowSillyText ? "What slots should I skip when auto-equipping?" : "Select ignored auto-equip slots",
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
                 OnPost: CheckIfChoiceIsValid,

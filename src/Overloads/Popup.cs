@@ -73,7 +73,7 @@ namespace XRL.World.CleverGirl.Overloads {
                 }
                 array2[0].text = (list.Count == array.Length) ? "{{W|[Tab]}} {{y|Deselect All}}" : "{{W|[Tab]}} {{y|Select All}}";
                 int num = Popup.ShowOptionList(Title, array, Hotkeys, Spacing, Intro, MaxWidth, RespectOptionNewlines, AllowEscape, DefaultSelected, SpacingText, OnResult, Context, Icons, IntroIcon, array2, CenterIntro, CenterIntro, IconPosition, ForceNewPopup);
-                if (!OnPost(num)) {  // Check num to see if it's a valid option, otherwise skip
+                if (OnPost != null && !OnPost(num)) {  // Invoke predicate function, skip current choice if it returns false
                     continue;
                 }
                 switch (num) {

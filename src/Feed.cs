@@ -12,6 +12,7 @@ namespace XRL.World.CleverGirl {
     using XRL.World.Parts;
     using XRL.World.Parts.Mutation;
     using XRL.World.Skills.Cooking;
+    using Options = XRL.World.CleverGirl.Globals.Options;
 
     public static class CleverGirl_Feed {
         // InventoryAction options
@@ -172,11 +173,11 @@ namespace XRL.World.CleverGirl {
                 }
             }
             while (true) {
-                var index = Popup.ShowOptionList("What's for dinner, boss?",
-                                                Options: options.ToArray(),
-                                                Hotkeys: keys.ToArray(),
-                                                IntroIcon: introIcon,
-                                                AllowEscape: true);
+                var index = Popup.ShowOptionList(Title: Options.ShowSillyText ? "What's for dinner, boss?" : "Feed",
+                                                 Options: options.ToArray(),
+                                                 Hotkeys: keys.ToArray(),
+                                                 IntroIcon: introIcon,
+                                                 AllowEscape: true);
                 if (index == -1) {
                     return false;
                 }

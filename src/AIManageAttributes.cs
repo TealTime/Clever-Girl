@@ -4,6 +4,7 @@ namespace XRL.World.Parts {
     using System.Linq;
     using XRL.World.CleverGirl;
     using XRL.World.CleverGirl.Overloads;
+    using Options = XRL.World.CleverGirl.Globals.Options;
 
     [Serializable]
     public class CleverGirl_AIManageAttributes : CleverGirl_INoSavePart {
@@ -99,7 +100,7 @@ namespace XRL.World.Parts {
             // Start the menu
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: "What skills should I focus on?",
+                Intro: Options.ShowSillyText ? "Which attributes should invest my points in?" : "Select attribute focus.",
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
                 CenterIntro: true,
