@@ -32,7 +32,7 @@ namespace XRL.World.CleverGirl {
                 if (!option.Valid(leader, companion)) {
                     optionValidities.Add(false);
                     if (option.InvalidBehavior == Utility.InvalidOptionBehavior.DARKEN) {
-                        finalName = "&K" + ColorUtility.StripFormatting(finalName);
+                        finalName = "{{K|" + ColorUtility.StripFormatting(finalName) + "}}";
                     }
                 } else {
                     optionValidities.Add(true);

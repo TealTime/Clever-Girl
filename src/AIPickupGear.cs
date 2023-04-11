@@ -204,7 +204,7 @@ namespace XRL.World.Parts {
             var optionNames = new List<string>(allBodyParts.Count);
             var optionHotkeys = new List<char>(allBodyParts.Count);
             var initiallySelectedOptions = new List<int>(allBodyParts.Count);
-            var lockedOptionIndices = new List<int>();
+            var lockedOptions = new List<int>();
 
             foreach (var part in allBodyParts) {
                 int optionIndex = optionNames.Count;  // index that this option will have in the final menu
@@ -212,7 +212,7 @@ namespace XRL.World.Parts {
                 // Before creating option, make sure it's valid.
                 // Could be un-equipable in case of fungal infections, horns, TrueKin zoomy tank feet, etc.
                 if (!(part.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
-                    lockedOptionIndices.Add(optionIndex);
+                    lockedOptions.Add(optionIndex);
 
                     // Check if a previously tracked part is now unequippable. If so, stop tracking it.
                     if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID)) {
@@ -224,22 +224,12 @@ namespace XRL.World.Parts {
                 string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
                 string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
                 string optionText = part.Name + " : " + primary + " " + equipped;
-                // TODO: probably push this locking behavior into YieldSeveral()
-                if (lockedOptionIndices.Contains(part.ID)) {
-                    optionText = "{{y|" + optionText + "}}";
-                }
                 optionNames.Add(optionText);
                 optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
-
                 if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID)) {
                     initiallySelectedOptions.Add(optionIndex);
                 }
             }
-
-            // Menu selection post-hook function. Returning false will stop the current selection.
-            bool CheckIfChoiceIsValid(int index) {
-                return !lockedOptionIndices.Contains(index);
-            };
 
             // Pop up a menu for the player to checklist body parts
             var enumerableMenu = CleverGirl_Popup.YieldSeveral(
@@ -247,11 +237,11 @@ namespace XRL.World.Parts {
                 Intro: Options.ShowSillyText ? "What slots should I skip when auto-equipping?" : "Select ignored auto-equip slots",
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
-                OnPost: CheckIfChoiceIsValid,
                 CenterIntro: true,
                 IntroIcon: companion.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initiallySelectedOptions
+                InitialSelections: initiallySelectedOptions,
+                LockedOptions: lockedOptions
             );
 
             bool changed = false;

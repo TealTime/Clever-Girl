@@ -149,10 +149,11 @@ namespace XRL.World.Parts {
             var learnableSkills = new List<string>(SkillFactory.Factory.SkillList.Count);
             var optionNames = new List<string>(SkillFactory.Factory.SkillList.Count);
             var optionHotkeys = new List<char>(SkillFactory.Factory.SkillList.Count);
-            List<int> initiallySelectedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
-            List<int> lockedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
+            var initiallySelectedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
+            var lockedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
 
             // Traverse all top-level skills (IE: Axe, Tactics, Acrobatics) 
+            var lockedSuffixes = new List<string>(SkillFactory.Factory.SkillList.Values.Count);
             foreach (var skill in SkillFactory.Factory.SkillList.Values) {
                 if (IgnoreSkills.Contains(skill.Name)) {
                     continue;
@@ -160,7 +161,6 @@ namespace XRL.World.Parts {
                 if (!ParentObject.IsCombatObject() && CombatSkills.Contains(skill.Name)) {
                     continue;
                 }
-                Utility.MaybeLog("Looking at " + skill.Name);
                 learnableSkills.Add(skill.Name);
                 var canLearnSkill = skill.MeetsRequirements(ParentObject);
                 int learnedPowers = 0;
@@ -168,7 +168,6 @@ namespace XRL.World.Parts {
                 int totalPowers = 0;
                 // Traverse all powers within a skill (IE: Hurdle, Charge, Shield Slam) 
                 foreach (var Power in skill.Powers.Values) {
-                    Utility.MaybeLog("Looking at " + Power.Name);
                     if (Power.Cost == 0 && !Power.MeetsRequirements(ParentObject)) {
                         canLearnSkill = false;
                     }
@@ -186,21 +185,20 @@ namespace XRL.World.Parts {
                     ++totalPowers;
                 }
 
-                Utility.MaybeLog("Finished looking at powers. Now formatting " + skill.Name + " option.");
                 if (!canLearnSkill && !ParentObject.HasSkill(skill.Class)) {
                     lockedPowers = totalPowers - learnedPowers;
                 }
                 int unlockablePowers = totalPowers - lockedPowers;
                 string text = string.Format("[{0}/{1}] {2}", learnedPowers, unlockablePowers, skill.Name);
-                string suffix = lockedPowers == 0 ? "" : "{{r| (" + lockedPowers + " locked)}}";
+                lockedSuffixes.Add(lockedPowers == 0 ? "" : "{{r|(" + lockedPowers + " locked)}}");
 
-                // highlight option in 
+                // highlight because all skills are learned
                 int optionIndex = optionNames.Count;  // index that this skill will have in the menu
                 if (learnedPowers == totalPowers) {
-                    optionNames.Add("{{G|" + text + suffix + "}}");
+                    optionNames.Add("{{G|" + text + "}}");
                     lockedOptions.Add(optionIndex);
                 } else {
-                    optionNames.Add(text + suffix);
+                    optionNames.Add(text);
                 }
                 optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
                 if (LearningSkills.Contains(skill.Name)) {
@@ -208,10 +206,13 @@ namespace XRL.World.Parts {
                 }
             }
 
-            // Menu selection post-hook function. Returning false will stop the current selection.
-            bool CheckIfChoiceIsValid(int optionIndex) {
-                return !lockedOptions.Contains(optionIndex);
-            };
+            // Handle padding of locked suffixes for options
+            int maxWidth = optionNames.Max(s => s.Length);
+            for (int i = 0; i < optionNames.Count; i++) {
+                int numPadding = maxWidth - optionNames[i].Length - 1;
+                string padding = (numPadding >= 0) ? new string('-', numPadding) : "";
+                optionNames[i] += " {{K|" + padding + "}} " + lockedSuffixes[i];
+            }
 
             // Start the menu
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
@@ -219,11 +220,11 @@ namespace XRL.World.Parts {
                 Intro: Options.ShowSillyText ? "What skills should I focus on learning?" : "Select skill focus.",
                 Options: optionNames.ToArray(),
                 Hotkeys: optionHotkeys.ToArray(),
-                OnPost: CheckIfChoiceIsValid,
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initiallySelectedOptions
+                InitialSelections: initiallySelectedOptions,
+                LockedOptions: lockedOptions
             );
 
             // Process selections as they happen until menu is closed

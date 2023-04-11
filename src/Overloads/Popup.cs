@@ -26,7 +26,7 @@ namespace XRL.World.CleverGirl.Overloads {
         ///     1.) Allow for prepopulation of selected options (InitialSelections optional parameter)
         ///     2.) Yield selections as they occur, instead of having to use Backspace to accept all options at once.
         ///         I found myself pressing 'Esc' instead of 'Backspace' and being confused far too often why my selections weren't being saved.
-        ///     3.) Have post-hook functionality for special options. IE: greyed/disabled ones
+        ///     3.) Allow for locking of options
         /// </summary>
         public static IEnumerable<YieldResult> YieldSeveral(
             string Title = "",
@@ -42,11 +42,6 @@ namespace XRL.World.CleverGirl.Overloads {
             int DefaultSelected = 0,
             string SpacingText = "",
             Action<int> OnResult = null,
-            Predicate<int> OnPost = null,  // Another shameless addition added because Clever Girl has some options that are nice
-                                           // to see visually, but can't be selected. OnResult doesn't seem to fit this use case
-                                           // as it is void return type, so I made this so that it can truly gate invalid options.
-                                           // I understand this might be a design mistake, (giving callers control over internals)
-                                           // but I'll leave that up to the Pros to decide.
             GameObject Context = null,
             IRenderable[] Icons = null,
             IRenderable IntroIcon = null,
@@ -54,9 +49,14 @@ namespace XRL.World.CleverGirl.Overloads {
             bool CenterIntroIcon = true,
             int IconPosition = -1,
             bool ForceNewPopup = false,
-            List<int> InitialSelections = null)  // New optional parameter to provide starting selection state
+            List<int> InitialSelections = null,  // New optional parameter to provide starting selection state
+            List<int> LockedOptions = null)      // New optional parameter to lock certain options. Might be better to instantiate
+                                                 // objects if there's multiple special option types beyond just locking in future.
         {
-            List<int> list = (InitialSelections == null) ? new List<int>() : new List<int>(InitialSelections);  // Setup initializer to instead use new optional parameter if it exists
+            LockedOptions = LockedOptions ?? new List<int>();
+            var list = (InitialSelections is null) ? new List<int>() : new List<int>(InitialSelections.Except(LockedOptions));  // Setup initializer to instead use new optional parameter if it exists
+            int numEnabledOptions = Options.Length - LockedOptions.Count;
+
             string[] array = new string[Options.Length];
             QudMenuItem[] array2 = new QudMenuItem[1]
             {
@@ -68,12 +68,16 @@ namespace XRL.World.CleverGirl.Overloads {
             };
             while (true) {
                 for (int i = 0; i < array.Length; i++) {
+                    if (LockedOptions.Contains(i)) {
+                        array[i] = "{{K|[X] " + ColorUtility.StripFormatting(Options[i]) + "}}";
+                        continue;
+                    }
                     array[i] = list.Contains(i) ? "{{W|[þ]}} " : "{{y|[ ]}} ";
                     array[i] += Options[i];
                 }
-                array2[0].text = (list.Count == array.Length) ? "{{W|[Tab]}} {{y|Deselect All}}" : "{{W|[Tab]}} {{y|Select All}}";
+                array2[0].text = (list.Count < numEnabledOptions) ? "{{W|[Tab]}} {{y|Select All}}" : "{{W|[Tab]}} {{y|Deselect All}}";
                 int num = Popup.ShowOptionList(Title, array, Hotkeys, Spacing, Intro, MaxWidth, RespectOptionNewlines, AllowEscape, DefaultSelected, SpacingText, OnResult, Context, Icons, IntroIcon, array2, CenterIntro, CenterIntro, IconPosition, ForceNewPopup);
-                if (OnPost != null && !OnPost(num)) {  // Invoke predicate function, skip current choice if it returns false
+                if (num >= 0 && LockedOptions.Contains(num)) {
                     continue;
                 }
                 switch (num) {
@@ -81,15 +85,17 @@ namespace XRL.World.CleverGirl.Overloads {
                         yield break;
                     case -3:  // Tab
                         var tempList = new List<int>(list);  // Temporary copy for reference in yielding only changed options
-                        if (list.Count != array.Length) {
+                        if (list.Count < numEnabledOptions) {
                             list.Clear();
-                            list.AddRange(Enumerable.Range(0, array.Length));
-                            foreach (var n in list.Except(tempList)) {  // Only yield options that were added, not those that were unchanged
+                            list.AddRange(Enumerable.Range(0, array.Length).Except(LockedOptions));
+                            // Yield options that changed
+                            foreach (var n in list.Except(tempList).Where(n => !LockedOptions.Contains(n))) {
                                 yield return new YieldResult(n, true);
                             }
                         } else {
                             list.Clear();
-                            foreach (var n in tempList) {
+                            // Yield options that changed
+                            foreach (var n in tempList.Where(n => !LockedOptions.Contains(n))) {
                                 yield return new YieldResult(n, false);
                             }
                         }

@@ -1,11 +1,13 @@
 namespace XRL.World.Parts {
-    using System;
     using HarmonyLib;
+    using System;
     using System.Collections.Generic;
     using System.Linq;
+    using ConsoleLib.Console;
     using XRL.UI;
     using XRL.World.Parts.Mutation;
     using XRL.World.CleverGirl;
+    using XRL.World.CleverGirl.Overloads;
     using Options = XRL.World.CleverGirl.Globals.Options;
 
     [Serializable]
@@ -109,36 +111,39 @@ namespace XRL.World.Parts {
                 return;
             }
 
-            var pool = new List<BaseMutation>();
-            var toDrop = new List<string>();
+            var canLevelMutations = new List<BaseMutation>();
+            var maxLevelMutations = new List<string>();
             foreach (var mutationName in FocusingMutations) {
                 var mutation = ParentObject.GetPart<Mutations>().GetMutation(mutationName);
+                // TODO: Determine how this could. Maybe it's a mutation from another mod that was disabled? Check logs.
                 if (mutation == null) {
+                    Utility.MaybeLog(ParentObject.DisplayName + " is focusing " + mutationName + " but it doesn't own the mutation anymore?");
                     continue;
                 }
+
                 if (mutation.CanIncreaseLevel()) {
-                    pool.Add(mutation);
+                    canLevelMutations.Add(mutation);
                 } else if (!mutation.IsPhysical() && mutation.BaseLevel == mutation.GetMaxLevel()) {
-                    toDrop.Add(mutationName);
+                    maxLevelMutations.Add(mutationName);
                 }
             }
 
             if (WantNewMutations) {
                 // use null as a placeholder to save the MP
-                pool.Add(null);
+                canLevelMutations.Add(null);
             }
 
             // drop mutations that are fully leveled
-            FocusingMutations = FocusingMutations.Except(toDrop).ToList();
+            FocusingMutations = FocusingMutations.Except(maxLevelMutations).ToList();
 
-            if (pool.Count == 0) {
+            if (canLevelMutations.Count == 0) {
                 // nothing to learn
                 return;
             }
 
             var Random = Utility.Random(this);
-            var which = pool.GetRandomElement(Random);
-            if (which == null) {
+            var targetMutation = canLevelMutations.GetRandomElement(Random);
+            if (targetMutation == null) {
                 ++NewMutationSavings;
                 if (NewMutationSavings < 4) {
                     SpendMP(); // spend any additional MP if relevant
@@ -172,15 +177,15 @@ namespace XRL.World.Parts {
                     const int baseChoiceCount = 3;
                     var choiceCount = isFollower ? 1 : baseChoiceCount;
                     var choices = new List<BaseMutation>(choiceCount);
-                    var strings = new List<string>(choiceCount);
+                    var optionNames = new List<string>(choiceCount);
                     var newPartIndex = ParentObject.IsChimera() ? Random.Next(baseChoiceCount) : -1;
                     // only offer valuable mutations if possible, but backfill with cheap ones
                     foreach (var mutationType in valuableMutations.Concat(cheapMutations)) {
                         var mutation = mutationType.CreateInstance();
                         var newPartString = choices.Count != newPartIndex ? "" : "{{G|+ grow a new body part}}";
                         choices.Add(mutation);
-                        strings.Add("{{W|" + mutation.DisplayName + "}} " + newPartString +
-                                    " {{y|- " + mutation.GetDescription() + "}}\n" + mutation.GetLevelText(1));
+                        optionNames.Add("{{W|" + mutation.DisplayName + "}} " + newPartString +
+                                        " {{y|- " + mutation.GetDescription() + "}}\n" + mutation.GetLevelText(1));
                         if (choices.Count == choiceCount) {
                             break;
                         }
@@ -197,7 +202,7 @@ namespace XRL.World.Parts {
 
                     var choice = isFollower ? 0 : -1;
                     while (-1 == choice) {
-                        choice = Popup.ShowOptionList(Options: strings.ToArray(),
+                        choice = Popup.ShowOptionList(Options: optionNames.ToArray(),
                                                       Spacing: 1,
                                                       Intro: "Choose a mutation for " + ParentObject.the + ParentObject.ShortDisplayName + ".",
                                                       MaxWidth: 78,
@@ -220,7 +225,7 @@ namespace XRL.World.Parts {
                     }
                 }
             } else {
-                ParentObject.GetPart<Mutations>().LevelMutation(which, which.BaseLevel + 1);
+                ParentObject.GetPart<Mutations>().LevelMutation(targetMutation, targetMutation.BaseLevel + 1);
                 _ = ParentObject.UseMP(1);
             }
         }
@@ -261,102 +266,139 @@ namespace XRL.World.Parts {
         }
 
         public bool ManageMutationsMenu() {
-            var changed = false;
             var mutations = new List<string>();
-            var strings = new List<string>();
-            var keys = new List<char>();
-            if (ParentObject.GetPart<Mutations>() is Mutations haveMutations) {
-                foreach (var Mutation in haveMutations.MutationList) {
-                    mutations.Add(Mutation.Name);
-                    // physical mutations can RapidLevel, so can always be selected
-                    var canFocus = Mutation.CanLevel() && (Mutation.BaseLevel < Mutation.GetMaxLevel() || Mutation.IsPhysical());
-                    var prefix = !canFocus ? "*" :
-                                             FocusingMutations.Contains(Mutation.Name) ? "+" : "-";
-                    var levelAdjust = Mutation.Level - Mutation.BaseLevel;
-                    var levelAdjustString = levelAdjust == 0 ? "" :
-                                                               levelAdjust < 0 ? "{{R|-" + (-levelAdjust) + "}}" :
-                                                                                 "{{G|+" + levelAdjust + "}}";
-                    strings.Add(prefix + " " + Mutation.DisplayName + " (" + Mutation.BaseLevel + levelAdjustString + ")");
-                    keys.Add(keys.Count >= 26 ? ' ' : (char)('a' + keys.Count));
+            var optionNames = new List<string>();
+            var optionHotkeys = new List<char>();
+            var initiallySelectedOptions = new List<int>();
+            var lockedOptions = new List<int>();
+
+            int optionIndex = 0;
+            IDictionary<int, Predicate<bool>> specialOptionActionMap = new Dictionary<int, Predicate<bool>>();
+            /// <summary>
+            /// Factory function to generate new menu options. Special options that require special treatment get a predicate.
+            /// Also meant to keep optionIndex automatically incrementing
+            /// </summary>
+            void NewOption(string _name, bool _locked, bool _selected, Predicate<bool> action = null) {
+                if (_locked) {
+                    lockedOptions.Add(optionIndex);
+                }
+                if (_selected) {
+                    initiallySelectedOptions.Add(optionIndex);
+                }
+                if (action != null) {
+                    specialOptionActionMap.Add(optionIndex, action);
+                }
+                optionNames.Add(_name);
+                optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
+                optionIndex++;
+                Utility.MaybeLog("index: " + optionIndex + " name: " + _name + " locked: " + _locked + " selected: " + _selected);
+            }
+
+            // Create and format mutation options
+            if (ParentObject.GetPart<Mutations>() is Mutations ownedMutations) {
+                foreach (var mutation in ownedMutations.MutationList) {
+                    mutations.Add(mutation.Name);
+                    {
+                        bool locked = false;
+                        // physical mutations can RapidLevel, so can always be selected
+                        bool canLevel = mutation.CanLevel();
+                        bool maxLevel = mutation.BaseLevel >= mutation.GetMaxLevel() && !mutation.IsPhysical();
+                        string lockReason = "";
+                        if (!canLevel || maxLevel) {
+                            locked = true;
+                            lockReason = !canLevel ? "(fixed)" : (maxLevel ? "(maxed)" : "(???)");
+
+                            // Make sure property isn't focused, mostly to ensure menu doesn't show a filled, yet locked, checkbox.
+                            _ = ModifyFocusedMutationsProperty(mutation.Name, false);  // Dont set 'changed' for this as it shouldn't punish the player 
+                        }
+
+                        var levelAdjust = mutation.Level - mutation.BaseLevel;
+                        var levelAdjustString = levelAdjust == 0 ? "" :
+                                                                   levelAdjust < 0 ? "{{R|-" + (-levelAdjust) + "}}" :
+                                                                                     "{{G|+" + levelAdjust + "}}";
+                        var optionText = mutation.DisplayName + " (" + mutation.BaseLevel + levelAdjustString + ") " + lockReason;
+                        NewOption(optionText, locked, FocusingMutations.Contains(mutation.Name));
+                    }
                 }
             }
-            var newMutationIndex = strings.Count;
+
+            // Companion 'want new mutations'
             {
-                var prefix = ParentObject.GetPart<Mutations>().GetMutatePool().Count == 0 ? "*" : WantNewMutations ? "+" : "-";
-                strings.Add(prefix + " Acquire new mutations");
-                keys.Add(keys.Count >= 26 ? ' ' : (char)('a' + keys.Count));
+                bool locked = false;
+                if (ParentObject.GetPart<Mutations>().GetMutatePool().Count == 0) {
+                    locked = true;
+                    WantNewMutations = false;
+                }
+                NewOption("Acquire new mutations", locked, WantNewMutations, ModifyWantNewMutationsProperty);
             }
-            var newFollowerMutationIndex = -1;
+
+            // Follower 'want new mutations'
             var followers = Utility.CollectFollowersOf(ParentObject);
             if (followers.Any()) {
-                newFollowerMutationIndex = strings.Count;
-                var anyMutationsToGain = false;
-                foreach (var follower in followers) {
-                    if (ParentObject.GetPart<Mutations>().MutationList.Any(m => !follower.GetPart<Mutations>().MutationList.Contains(m))) {
-                        anyMutationsToGain = true;
-                        break;
+                // This algorithm basically boils down to this:
+                // "If any followers do not have a mutation that their leader does have, then stop searching since there's atleast 1 mutation unlearned."
+                {
+                    bool locked = true;
+                    foreach (var follower in followers) {
+                        if (ParentObject.GetPart<Mutations>().MutationList.Any(m => !follower.GetPart<Mutations>().MutationList.Contains(m))) {
+                            locked = false;
+                            break;
+                        }
                     }
+                    NewOption("Acquire new follower mutations", locked, FollowersWantNewMutations, ModifyFollowersWantNewMutationsProperty);
                 }
-                var prefix = !anyMutationsToGain ? "*" : FollowersWantNewMutations ? "+" : "-";
-                strings.Add(prefix + " Acquire new follower mutations");
-                keys.Add(keys.Count >= 26 ? ' ' : (char)('a' + keys.Count));
             }
 
-            while (true) {
-                var index = Popup.ShowOptionList(Title: ParentObject.the + ParentObject.ShortDisplayName,
-                                                 Options: strings.ToArray(),
-                                                 Hotkeys: keys.ToArray(),
-                                                 Intro: Options.ShowSillyText ? "Which mutations should I invest in?" : "Select mutation focus.",
-                                                 AllowEscape: true);
-                if (index < 0) {
-                    if (FocusingMutations.Count == 0 && !WantNewMutations && !FollowersWantNewMutations) {
-                        // don't bother listening if there's nothing to hear
-                        ParentObject.RemovePart<CleverGirl_AIManageMutations>();
-                        foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                            follower.RemovePart<CleverGirl_AIManageMutations>();
-                        }
-                    } else {
-                        // spend any MP we have if relevant
-                        SpendMP();
-                        foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                            var part = follower.RequirePart<CleverGirl_AIManageMutations>();
-                            part.WantNewMutations = FollowersWantNewMutations;
-                            part.FocusingMutations = FocusingMutations;
-                            part.SpendMP();
-                        }
+            // Start the menu
+            var enumerableMenu = CleverGirl_Popup.YieldSeveral(
+                Title: ParentObject.the + ParentObject.ShortDisplayName,
+                Intro: Options.ShowSillyText ? "Which mutations should I invest in?" : "Select mutation focus.",
+                Options: optionNames.ToArray(),
+                Hotkeys: optionHotkeys.ToArray(),
+                CenterIntro: true,
+                IntroIcon: ParentObject.RenderForUI(),
+                AllowEscape: true,
+                InitialSelections: initiallySelectedOptions,
+                LockedOptions: lockedOptions
+            );
+
+            // Process selections as they happen until menu is closed
+            var changed = false;
+            Utility.MaybeLog("Mutations: [" + string.Join(", ", mutations) + "]");
+            foreach (CleverGirl_Popup.YieldResult result in enumerableMenu) {
+                if (specialOptionActionMap.TryGetValue(result.Index, out Predicate<bool> action)) {
+                    Utility.MaybeLog("IndexSpecial: [" + result.Index + "]");
+                    changed |= action(result.Value);
+                } else {
+                    if (result.Index >= mutations.Count) {
+                        Utility.MaybeLog("IndexOutOfBoundsExcetion! Tried accessing mutations[" + result.Index + "] when it only has " + mutations.Count + "elements");
+                        Utility.MaybeLog("specialOptionActionMap was [" + string.Join(", ", specialOptionActionMap.Keys) + "]");
+                        continue;
                     }
-                    return changed;
+                    Utility.MaybeLog("IndexNormal: [" + result.Index + "]");
+                    changed |= ModifyFocusedMutationsProperty(mutations[result.Index], result.Value);
                 }
-                if (newMutationIndex == index) {
-                    if (strings[index][0] != '*') {
-                        changed = true;
-                        WantNewMutations = !WantNewMutations;
-                        strings[index] = (WantNewMutations ? '+' : '-') + strings[index].Substring(1);
-                    }
-                } else if (newFollowerMutationIndex == index) {
-                    if (strings[index][0] != '*') {
-                        changed = true;
-                        FollowersWantNewMutations = !FollowersWantNewMutations;
-                        strings[index] = (FollowersWantNewMutations ? '+' : '-') + strings[index].Substring(1);
-                    }
-                } else if (strings[index][0] == '*') {
-                    // ignore
-                } else if (strings[index][0] == '-') {
-                    // start leveling this mutation
-                    var working = FocusingMutations;
-                    working.Add(mutations[index]);
-                    FocusingMutations = working;
+            }
+            OnMenuExit();  // Spend MP and do some house keeping
 
-                    strings[index] = '+' + strings[index].Substring(1);
-                    changed = true;
-                } else if (strings[index][0] == '+') {
-                    // stop leveling this mutation
-                    var working = FocusingMutations;
-                    _ = working.Remove(mutations[index]);
-                    FocusingMutations = working;
+            return changed;
+        }
 
-                    strings[index] = '-' + strings[index].Substring(1);
-                    changed = true;
+        public void OnMenuExit() {
+            if (FocusingMutations.Count > 0 || WantNewMutations || FollowersWantNewMutations) {
+                // spend any MP we have if relevant
+                SpendMP();
+                foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
+                    var part = follower.RequirePart<CleverGirl_AIManageMutations>();
+                    part.WantNewMutations = FollowersWantNewMutations;
+                    part.FocusingMutations = FocusingMutations;
+                    part.SpendMP();
+                }
+            } else {
+                // don't bother listening if there's nothing to hear
+                ParentObject.RemovePart<CleverGirl_AIManageMutations>();
+                foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
+                    follower.RemovePart<CleverGirl_AIManageMutations>();
                 }
             }
         }
@@ -365,7 +407,7 @@ namespace XRL.World.Parts {
         /// Add or remove an element from a list property
         /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
         /// </summary
-        private bool ModifyProperty(string element, bool add) {
+        private bool ModifyFocusedMutationsProperty(string element, bool add) {
             // TODO: Make this generic as it's duplicated across 4 classes
             List<string> property = FocusingMutations;
             bool existedPrior = property.Contains(element);
@@ -380,6 +422,33 @@ namespace XRL.World.Parts {
                 return true;
             }
 
+            return false;
+        }
+        private bool ModifyWantNewMutationsProperty(bool value) {
+            // TODO: Make this generic as it's duplicated
+            var property = WantNewMutations;
+            if (value != property) {
+                WantNewMutations = value;
+                return true;
+            }
+            return false;
+        }
+        private bool ModifyFollowersWantNewMutationsProperty(bool value) {
+            // TODO: Make this generic as it's duplicated
+            var property = FollowersWantNewMutations;
+            if (value != property) {
+                FollowersWantNewMutations = value;
+                return true;
+            }
+            return false;
+        }
+        private bool ModifyNewMutationSavingsProperty(int value) {
+            // TODO: Make this generic as it's duplicated
+            var property = NewMutationSavings;
+            if (value != property) {
+                NewMutationSavings = value;
+                return true;
+            }
             return false;
         }
     }
