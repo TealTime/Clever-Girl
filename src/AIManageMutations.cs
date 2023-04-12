@@ -9,6 +9,7 @@ namespace CleverGirl.Parts {
     using XRL.World.Parts;
     using XRL.World.Parts.Mutation;
     using CleverGirl;
+    using CleverGirl.Menus;
     using CleverGirl.Menus.Overloads;
     using Options = Globals.Options;
 
@@ -269,32 +270,8 @@ namespace CleverGirl.Parts {
 
         public bool ManageMutationsMenu() {
             var mutations = new List<string>();
-            var optionNames = new List<string>();
-            var optionHotkeys = new List<char>();
-            var initiallySelectedOptions = new List<int>();
-            var lockedOptions = new List<int>();
-
-            int optionIndex = 0;
-            IDictionary<int, Predicate<bool>> specialOptionActionMap = new Dictionary<int, Predicate<bool>>();
-            /// <summary>
-            /// Factory function to generate new menu options. Special options that require special treatment get a predicate.
-            /// Also meant to keep optionIndex automatically incrementing
-            /// </summary>
-            void NewOption(string _name, bool _locked, bool _selected, Predicate<bool> action = null) {
-                if (_locked) {
-                    lockedOptions.Add(optionIndex);
-                }
-                if (_selected) {
-                    initiallySelectedOptions.Add(optionIndex);
-                }
-                if (action != null) {
-                    specialOptionActionMap.Add(optionIndex, action);
-                }
-                optionNames.Add(_name);
-                optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
-                optionIndex++;
-                Utility.MaybeLog("index: " + optionIndex + " name: " + _name + " locked: " + _locked + " selected: " + _selected);
-            }
+            var menuOptions = new List<MenuOption>();
+            var menuOptionTargetPropertyMap = new Dictionary<int, string>();
 
             // Create and format mutation options
             if (ParentObject.GetPart<Mutations>() is Mutations ownedMutations) {
@@ -311,7 +288,7 @@ namespace CleverGirl.Parts {
                             lockReason = !canLevel ? "(fixed)" : (maxLevel ? "(maxed)" : "(???)");
 
                             // Make sure property isn't focused, mostly to ensure menu doesn't show a filled, yet locked, checkbox.
-                            _ = ModifyFocusedMutationsProperty(mutation.Name, false);  // Dont set 'changed' for this as it shouldn't punish the player 
+                            _ = Utility.EditStringPropertyCollection(ParentObject, FOCUSINGMUTATIONS_PROPERTY, mutation.Name, false);  // Dont set 'changed' for this as it shouldn't punish the player 
                         }
 
                         var levelAdjust = mutation.Level - mutation.BaseLevel;
@@ -319,7 +296,10 @@ namespace CleverGirl.Parts {
                                                                    levelAdjust < 0 ? "{{R|-" + (-levelAdjust) + "}}" :
                                                                                      "{{G|+" + levelAdjust + "}}";
                         var optionText = mutation.DisplayName + " (" + mutation.BaseLevel + levelAdjustString + ") " + lockReason;
-                        NewOption(optionText, locked, FocusingMutations.Contains(mutation.Name));
+                        menuOptions.Add(new MenuOption(Name: optionText,
+                                                       Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
+                                                       Locked: locked,
+                                                       Selected: FocusingMutations.Contains(mutation.Name)));
                     }
                 }
             }
@@ -331,13 +311,18 @@ namespace CleverGirl.Parts {
                     locked = true;
                     WantNewMutations = false;
                 }
-                NewOption("Acquire new mutations", locked, WantNewMutations, ModifyWantNewMutationsProperty);
+                var option = new MenuOption(Name: "Acquire new mutations",
+                                            Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
+                                            Locked: locked,
+                                            Selected: WantNewMutations);
+                menuOptionTargetPropertyMap.Add(menuOptions.Count, WANTNEWMUTATIONS_PROPERTY);
+                menuOptions.Add(option);
             }
 
             // Follower 'want new mutations'
             var followers = Utility.CollectFollowersOf(ParentObject);
             if (followers.Any()) {
-                // This algorithm basically boils down to this:
+                // This algorithm basically boils down to the following:
                 // "If any followers do not have a mutation that their leader does have, then stop searching since there's atleast 1 mutation unlearned."
                 {
                     bool locked = true;
@@ -347,7 +332,12 @@ namespace CleverGirl.Parts {
                             break;
                         }
                     }
-                    NewOption("Acquire new follower mutations", locked, FollowersWantNewMutations, ModifyFollowersWantNewMutationsProperty);
+                    var option = new MenuOption(Name: "Acquire new follower mutations",
+                                                Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
+                                                Locked: locked,
+                                                Selected: FollowersWantNewMutations);
+                    menuOptionTargetPropertyMap.Add(menuOptions.Count, FOLLOWERSWANTNEWMUTATIONS_PROPERTY);
+                    menuOptions.Add(option);
                 }
             }
 
@@ -355,30 +345,25 @@ namespace CleverGirl.Parts {
             var enumerableMenu = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
                 Intro: Options.ShowSillyText ? "Which mutations should I invest in?" : "Select mutation focus.",
-                Options: optionNames.ToArray(),
-                Hotkeys: optionHotkeys.ToArray(),
+                Options: menuOptions.Select(o => o.Name).ToArray(),
+                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initiallySelectedOptions,
-                LockedOptions: lockedOptions
+                InitialSelections: menuOptions.FindAll(o => o.Selected).Select(o => menuOptions.IndexOf(o)).ToArray(),
+                LockedOptions: menuOptions.FindAll(o => o.Locked).Select(o => menuOptions.IndexOf(o)).ToArray()
             );
 
             // Process selections as they happen until menu is closed
             var changed = false;
-            Utility.MaybeLog("Mutations: [" + string.Join(", ", mutations) + "]");
             foreach (CleverGirl_Popup.YieldResult result in enumerableMenu) {
-                if (specialOptionActionMap.TryGetValue(result.Index, out Predicate<bool> action)) {
-                    Utility.MaybeLog("IndexSpecial: [" + result.Index + "]");
-                    changed |= action(result.Value);
+                if (menuOptionTargetPropertyMap.TryGetValue(result.Index, out string targetPropertyName)) {
+                    changed |= Utility.EditIntProperty(ParentObject, targetPropertyName, result.Value);
                 } else {
                     if (result.Index >= mutations.Count) {
-                        Utility.MaybeLog("IndexOutOfBoundsExcetion! Tried accessing mutations[" + result.Index + "] when it only has " + mutations.Count + "elements");
-                        Utility.MaybeLog("specialOptionActionMap was [" + string.Join(", ", specialOptionActionMap.Keys) + "]");
                         continue;
                     }
-                    Utility.MaybeLog("IndexNormal: [" + result.Index + "]");
-                    changed |= ModifyFocusedMutationsProperty(mutations[result.Index], result.Value);
+                    changed |= Utility.EditStringPropertyCollection(ParentObject, FOCUSINGMUTATIONS_PROPERTY, mutations[result.Index], result.Value);
                 }
             }
             OnMenuExit();  // Spend MP and do some house keeping
@@ -403,55 +388,6 @@ namespace CleverGirl.Parts {
                     follower.RemovePart<CleverGirl_AIManageMutations>();
                 }
             }
-        }
-
-        /// <summary>
-        /// Add or remove an element from a list property
-        /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
-        /// </summary
-        private bool ModifyFocusedMutationsProperty(string element, bool add) {
-            // TODO: Make this generic as it's duplicated across 4 classes
-            List<string> property = FocusingMutations;
-            bool existedPrior = property.Contains(element);
-
-            if (add && !existedPrior) {
-                property.Add(element);
-                FocusingMutations = property;
-                return true;
-            } else if (!add && existedPrior) {
-                _ = property.Remove(element);
-                FocusingMutations = property;
-                return true;
-            }
-
-            return false;
-        }
-        private bool ModifyWantNewMutationsProperty(bool value) {
-            // TODO: Make this generic as it's duplicated
-            var property = WantNewMutations;
-            if (value != property) {
-                WantNewMutations = value;
-                return true;
-            }
-            return false;
-        }
-        private bool ModifyFollowersWantNewMutationsProperty(bool value) {
-            // TODO: Make this generic as it's duplicated
-            var property = FollowersWantNewMutations;
-            if (value != property) {
-                FollowersWantNewMutations = value;
-                return true;
-            }
-            return false;
-        }
-        private bool ModifyNewMutationSavingsProperty(int value) {
-            // TODO: Make this generic as it's duplicated
-            var property = NewMutationSavings;
-            if (value != property) {
-                NewMutationSavings = value;
-                return true;
-            }
-            return false;
         }
     }
 }

@@ -15,22 +15,22 @@ namespace CleverGirl.Parts {
     [Serializable]
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
         public static string PROPERTY => "CleverGirl_AIPickupGear";
-        public static string IGNOREDBODYPARTS_PROPERTY => PROPERTY + "_IgnoredBodyParts";
+        public static string IGNOREDBODYPARTIDS_PROPERTY => PROPERTY + "_IgnoredBodyPartIDs";
         public override void Register(GameObject Object) {
             _ = Object.SetIntProperty(PROPERTY, 1);
-            if (!Object.HasStringProperty(IGNOREDBODYPARTS_PROPERTY)) {
-                Object.SetStringProperty(IGNOREDBODYPARTS_PROPERTY, "");
+            if (!Object.HasStringProperty(IGNOREDBODYPARTIDS_PROPERTY)) {
+                Object.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, "");
             }
         }
         public override void Remove() {
             ParentObject.RemoveIntProperty(PROPERTY);
-            ParentObject.RemoveStringProperty(IGNOREDBODYPARTS_PROPERTY);
+            ParentObject.RemoveStringProperty(IGNOREDBODYPARTIDS_PROPERTY);
         }
 
         // TODO: Determine whether this is actually really inefficient/unoptimized, or if I'm just falling into the root of all evil.
-        public List<int> IgnoredBodyPartIDs {
-            get => ParentObject.GetStringProperty(IGNOREDBODYPARTS_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).Select(int.Parse).ToList();
-            set => ParentObject.SetStringProperty(IGNOREDBODYPARTS_PROPERTY, string.Join(',', value));
+        public List<string> IgnoredBodyPartIDs {
+            get => ParentObject.GetStringProperty(IGNOREDBODYPARTIDS_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
+            set => ParentObject.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, string.Join(',', value));
         }
 
         public override bool WantTurnTick() => true;
@@ -147,7 +147,7 @@ namespace CleverGirl.Parts {
                         continue;
                     }
                     if (thingComparer.Compare(thing, bodyPart.Equipped) < 0) {
-                        if (IgnoredBodyPartIDs.Contains(bodyPart.ID)) {
+                        if (IgnoredBodyPartIDs.Contains(bodyPart.ID.ToString())) {
                             Utility.MaybeLog("Ignoring " + thing.DisplayNameOnlyStripped + " even though its better than my " +
                                 (bodyPart.Equipped?.DisplayNameOnlyStripped ?? "nothing") + " because I'm forbidden to reequip my " + bodyPart.Name);
                             continue;
@@ -217,8 +217,8 @@ namespace CleverGirl.Parts {
                     lockedOptions.Add(optionIndex);
 
                     // Check if a previously tracked part is now unequippable. If so, stop tracking it.
-                    if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID)) {
-                        _ = ModifyProperty(part.ID, false);  // Dont set 'changed' for this as it shouldn't punish the player
+                    if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID.ToString())) {
+                        _ = Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, part.ID.ToString(), false);  // Dont set 'changed' for this as it shouldn't punish the player
                     }
                 }
 
@@ -228,7 +228,7 @@ namespace CleverGirl.Parts {
                 string optionText = part.Name + " : " + primary + " " + equipped;
                 optionNames.Add(optionText);
                 optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
-                if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID)) {
+                if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID.ToString())) {
                     initiallySelectedOptions.Add(optionIndex);
                 }
             }
@@ -242,14 +242,14 @@ namespace CleverGirl.Parts {
                 CenterIntro: true,
                 IntroIcon: companion.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initiallySelectedOptions,
-                LockedOptions: lockedOptions
+                InitialSelections: initiallySelectedOptions.ToArray(),
+                LockedOptions: lockedOptions.ToArray()
             );
 
             bool changed = false;
             foreach (CleverGirl_Popup.YieldResult result in enumerableMenu) {
                 int partID = allBodyParts[result.Index].ID;
-                changed |= ModifyProperty(partID, result.Value);
+                changed |= Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, partID.ToString(), result.Value);
             }
 
             return changed;
@@ -274,28 +274,6 @@ namespace CleverGirl.Parts {
             public override int Compare(GameObject x, GameObject y) {
                 return Brain.CompareShields(x, y, POV) * (Reverse ? -1 : 1);
             }
-        }
-
-        /// <summary>
-        /// Add or remove an element from a list property
-        /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
-        /// </summary
-        private bool ModifyProperty(int element, bool add) {
-            // TODO: Make this generic as it's duplicated across 4 classes
-            List<int> property = IgnoredBodyPartIDs;
-            bool existedPrior = property.Contains(element);
-
-            if (add && !existedPrior) {
-                property.Add(element);
-                IgnoredBodyPartIDs = property;
-                return true;
-            } else if (!add && existedPrior) {
-                _ = property.Remove(element);
-                IgnoredBodyPartIDs = property;
-                return true;
-            }
-
-            return false;
         }
     }
 }

@@ -1,4 +1,4 @@
-namespace CleverGirl {
+namespace CleverGirl.Patches {
     using HarmonyLib;
     using System;
     using System.Linq;

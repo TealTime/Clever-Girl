@@ -225,8 +225,8 @@ namespace CleverGirl.Parts {
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initiallySelectedOptions,
-                LockedOptions: lockedOptions
+                InitialSelections: initiallySelectedOptions.ToArray(),
+                LockedOptions: lockedOptions.ToArray()
             );
 
             // Process selections as they happen until menu is closed

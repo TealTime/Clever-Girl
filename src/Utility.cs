@@ -7,8 +7,6 @@ namespace CleverGirl {
     using XRL;
     using XRL.Rules;
     using XRL.World;
-    using XRL.UI;
-    using ConsoleLib.Console;
 
     public static class Utility {
         public static bool debug = true;
@@ -47,6 +45,11 @@ namespace CleverGirl {
                 RegexCache.Add(Regex, new Regex(Regex));
             }
             return RegexCache[Regex].Replace(String, Replacement);
+        }
+
+        // For menu hotkeys
+        public static char GetCharInAlphabet(int index) {
+            return index >= 26 ? ' ' : (char)('a' + index);
         }
 
         /// <summary>
@@ -93,55 +96,60 @@ namespace CleverGirl {
             return The.ActiveZone.FindObjects(obj => obj.IsLedBy(Leader));
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// Property functions used in the process of storing/retrieving serialization data in INoSaveParts. ///
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
         /// <summary>
-        /// Custom option menu that automatically performs category alignment
+        /// Wrapper around GameObject.SetIntProperty() that instead returns a boolean indicating if value changed.
         /// </summary>
-        /// <example>
-        /// Companions Menu uses this to show all important details about all current player/companion followers
-        /// </example>
-        public static int ShowTabularPopup(string Title, List<List<string>> Columns, List<int> ColumnWidths = null, List<IRenderable> Icons = null, IRenderable IntroIcon = null) {
-            if (ColumnWidths == null) {
-                ColumnWidths = new List<int>();
-                foreach (var column in Columns) {
-                    ColumnWidths.Add(column.Max(row => ColorUtility.LengthExceptFormatting(row)));
-                }
-            } else {
-                for (var i = 0; i < Columns.Count; ++i) {
-                    var maxWidth = Columns[i].Max(row => ColorUtility.LengthExceptFormatting(row));
-                    if (maxWidth < ColumnWidths[i]) {
-                        // shrink columns to actual content when possible
-                        ColumnWidths[i] = maxWidth;
-                    }
-                }
-            }
-            var lines = new string[Columns.Max(c => c.Count)];
-            for (int row = 0; row < lines.Length; ++row) {
-                lines[row] = "{{y|";
-                for (int column = 0; column < Columns.Count; ++column) {
-                    if (Columns[column].Count <= row) {
-                        continue;
-                    }
-                    var entry = Columns[column][row];
-                    if (entry.Length == 0) {
-                        continue;
-                    }
-                    var padding = ColumnWidths[column] - ColorUtility.LengthExceptFormatting(entry);
-                    if (padding < 0) {
-                        padding = 0;
-                    }
-                    if (column > 0) {
-                        lines[row] += " | ";
-                    }
-                    lines[row] += entry + new string('\xFF', padding);
-                }
-                lines[row] += "}}";
-            }
-            var hotkeys = new char[lines.Length];
-            for (var i = 0; i < hotkeys.Length; ++i) {
-                hotkeys[i] = i < 26 ? (char)('a' + i) : ' ';
-            }
-            return Popup.ShowOptionList(Title: Title, Options: lines, Hotkeys: hotkeys, IntroIcon: IntroIcon, Icons: Icons.ToArray(), AllowEscape: true);
+        public static bool EditIntProperty(GameObject obj, string propName, int value) {
+            bool changed = obj.GetIntProperty(propName) != value;
+            _ = obj.SetIntProperty(propName, value);
+            return changed;
         }
+
+        public static bool EditIntProperty(GameObject obj, string propName, bool value) {
+            return EditIntProperty(obj, propName, value ? 1 : 0);
+        }
+
+        /// <summary>
+        /// Wrapper around GameObject.SetStringProperty() that instead returns a boolean indicating if value changed.
+        /// </summary>
+        public static bool EditStringProperty(GameObject obj, string propName, string value) {
+            bool changed = obj.GetStringProperty(propName) != value;
+            obj.SetStringProperty(propName, value);  // Rant: Why is this void but SetIntProperty returns GameObject???
+            return changed;
+        }
+
+        /// <summary>
+        /// Add or remove a value in a string property collection. Return true if the collection changed.
+        /// </summary>
+        public static bool EditStringPropertyCollection(GameObject obj, string propName, string value, bool add) {
+            var collection = obj.GetStringProperty(propName)?.Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
+            if (collection == null) {
+                MaybeLog("Trying to edit a string property which doesn't exist? Probably a typo in '" + propName + "', or it was never defined.");
+                return false;
+            }
+
+            bool existedPrior = collection.Contains(value);
+            bool changed = true;
+            if (add && !existedPrior) {
+                collection.Add(value);
+            } else if (!add && existedPrior) {
+                _ = collection.Remove(value);
+            } else {
+                changed = false;
+            }
+
+            obj.SetStringProperty(propName, string.Join(",", collection));
+
+            return changed;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////
+        /// Menu classes/enums which should probably be moved to a Menus/ file at some point ///
+        ////////////////////////////////////////////////////////////////////////////////////////
 
         // Format of options to be processed in EventListener
         public class InventoryAction {

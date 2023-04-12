@@ -50,13 +50,13 @@ namespace CleverGirl.Menus.Overloads {
             bool CenterIntroIcon = true,
             int IconPosition = -1,
             bool ForceNewPopup = false,
-            List<int> InitialSelections = null,  // New optional parameter to provide starting selection state
-            List<int> LockedOptions = null)      // New optional parameter to lock certain options. Might be better to instantiate
+            int[] InitialSelections = null,  // New optional parameter to provide starting selection state
+            int[] LockedOptions = null)      // New optional parameter to lock certain options. Might be better to instantiate
                                                  // objects if there's multiple special option types beyond just locking in future.
         {
-            LockedOptions = LockedOptions ?? new List<int>();
+            LockedOptions = LockedOptions ?? new int[0];
             var list = (InitialSelections is null) ? new List<int>() : new List<int>(InitialSelections.Except(LockedOptions));  // Setup initializer to instead use new optional parameter if it exists
-            int numEnabledOptions = Options.Length - LockedOptions.Count;
+            int numEnabledOptions = Options.Length - LockedOptions.Count();
 
             string[] array = new string[Options.Length];
             QudMenuItem[] array2 = new QudMenuItem[1]

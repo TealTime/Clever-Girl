@@ -3,11 +3,16 @@ namespace CleverGirl.Menus {
     using ConsoleLib.Console;
     using System.Collections.Generic;
     using System.Reflection;
+    using System.Linq;
     using XRL;
+    using XRL.UI;
     using XRL.World;
     using XRL.Rules;
 
     public static class CleverGirl_CompanionsMenu {
+        private static readonly PropertyInfo DisplayNameBaseProperty = AccessTools.Property(typeof(GameObject), "DisplayNameBase");
+        private static string CompanionName(GameObject Companion) => ColorUtility.ClipToFirstExceptFormatting(DisplayNameBaseProperty.GetValue(Companion) as string, ',');
+
         public static void OpenMenu() {
             if (The.Player == null) {
                 // too early?
@@ -72,14 +77,59 @@ namespace CleverGirl.Menus {
             }
             HarvestFields(companionMap[The.Player]);
 
-            var selected = Utility.ShowTabularPopup("Companions", new List<List<string>>() { names, status, effects }, new List<int> { 30, 20, 20 }, icons, The.Player.pRender);
+            var selected = ShowTabularPopup("Companions", new List<List<string>>() { names, status, effects }, new List<int> { 30, 20, 20 }, icons, The.Player.pRender);
             if (selected != -1) {
                 // Interact with companion, if possible
                 _ = companionList[selected].Twiddle();
             }
         }
 
-        private static readonly PropertyInfo DisplayNameBaseProperty = AccessTools.Property(typeof(GameObject), "DisplayNameBase");
-        private static string CompanionName(GameObject Companion) => ColorUtility.ClipToFirstExceptFormatting(DisplayNameBaseProperty.GetValue(Companion) as string, ',');
+        /// <summary>
+        /// Custom option menu that automatically performs vertical category alignment.
+        /// </summary>
+        private static int ShowTabularPopup(string Title, List<List<string>> Columns, List<int> ColumnWidths = null, List<IRenderable> Icons = null, IRenderable IntroIcon = null) {
+            if (ColumnWidths == null) {
+                ColumnWidths = new List<int>();
+                foreach (var column in Columns) {
+                    ColumnWidths.Add(column.Max(row => ColorUtility.LengthExceptFormatting(row)));
+                }
+            } else {
+                for (var i = 0; i < Columns.Count; ++i) {
+                    var maxWidth = Columns[i].Max(row => ColorUtility.LengthExceptFormatting(row));
+                    if (maxWidth < ColumnWidths[i]) {
+                        // shrink columns to actual content when possible
+                        ColumnWidths[i] = maxWidth;
+                    }
+                }
+            }
+            var lines = new string[Columns.Max(c => c.Count)];
+            for (int row = 0; row < lines.Length; ++row) {
+                lines[row] = "{{y|";
+                for (int column = 0; column < Columns.Count; ++column) {
+                    if (Columns[column].Count <= row) {
+                        continue;
+                    }
+                    var entry = Columns[column][row];
+                    if (entry.Length == 0) {
+                        continue;
+                    }
+                    var padding = ColumnWidths[column] - ColorUtility.LengthExceptFormatting(entry);
+                    if (padding < 0) {
+                        padding = 0;
+                    }
+                    if (column > 0) {
+                        lines[row] += " | ";
+                    }
+                    lines[row] += entry + new string('\xFF', padding);
+                }
+                lines[row] += "}}";
+            }
+            var hotkeys = new char[lines.Length];
+            for (var i = 0; i < hotkeys.Length; ++i) {
+                hotkeys[i] = i < 26 ? (char)('a' + i) : ' ';
+            }
+            return Popup.ShowOptionList(Title: Title, Options: lines, Hotkeys: hotkeys, IntroIcon: IntroIcon, Icons: Icons.ToArray(), AllowEscape: true);
+        }
+
     }
 }

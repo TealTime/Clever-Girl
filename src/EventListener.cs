@@ -8,6 +8,7 @@ namespace CleverGirl.Parts {
     using XRL.World.Parts;
     using CleverGirl;
     using CleverGirl.Menus;
+    using CleverGirl.Patches;
     using Options = Globals.Options;
 
     [Serializable]
