@@ -1,14 +1,16 @@
-namespace XRL.World.Parts {
+namespace CleverGirl.Parts {
     using HarmonyLib;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using ConsoleLib.Console;
+    using XRL;
     using XRL.UI;
+    using XRL.World;
+    using XRL.World.Parts;
     using XRL.World.Parts.Mutation;
-    using XRL.World.CleverGirl;
-    using XRL.World.CleverGirl.Overloads;
-    using Options = XRL.World.CleverGirl.Globals.Options;
+    using CleverGirl;
+    using CleverGirl.Menus.Overloads;
+    using Options = Globals.Options;
 
     [Serializable]
     [HarmonyPatch]
@@ -258,7 +260,7 @@ namespace XRL.World.Parts {
                           allPhysicalMutations[0];
             var insteadKey = "RapidLevel_" + instead.GetMutationClass();
             manageMutations.DidX("rapidly advance",
-                                 instead.DisplayName + " by " + Language.Grammar.Cardinal(Amount) + " ranks to rank " + (instead.Level + Amount),
+                                 instead.DisplayName + " by " + XRL.Language.Grammar.Cardinal(Amount) + " ranks to rank " + (instead.Level + Amount),
                                  "!", ColorAsGoodFor: __instance.ParentObject);
             _ = __instance.ParentObject.ModIntProperty(insteadKey, Amount);
 

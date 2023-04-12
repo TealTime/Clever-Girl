@@ -1,11 +1,13 @@
-namespace XRL.World.Parts {
+namespace CleverGirl.Parts {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using XRL;
+    using XRL.World;
     using XRL.World.Skills;
-    using XRL.World.CleverGirl;
-    using XRL.World.CleverGirl.Overloads;
-    using Options = XRL.World.CleverGirl.Globals.Options;
+    using CleverGirl;
+    using CleverGirl.Menus.Overloads;
+    using Options = Globals.Options;
 
     [Serializable]
     public class CleverGirl_AIManageSkills : CleverGirl_INoSavePart {

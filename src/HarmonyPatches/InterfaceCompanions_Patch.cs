@@ -1,10 +1,12 @@
-namespace XRL.World.Parts.CleverGirl {
+namespace CleverGirl {
     using HarmonyLib;
     using System;
     using System.Linq;
     using System.Collections.Generic;
+    using XRL;
     using XRL.UI;
-    using XRL.World.CleverGirl;
+    using XRL.World;
+    using XRL.World.Parts;
 
     // adjust smart use if we might be interfacing companions
     [HarmonyPatch(typeof(CyberneticsTerminal2), "HandleEvent", new Type[] { typeof(CommandSmartUseEvent) })]

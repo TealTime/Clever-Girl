@@ -3,12 +3,13 @@
 /// The function(s)/method(s) in this file are intended to be temporary, with the idea in mind that they may or may not be
 /// eclipsed by a new developer implementation at some point.
 
-namespace XRL.World.CleverGirl.Overloads {
+namespace CleverGirl.Menus.Overloads {
+    using ConsoleLib.Console;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using XRL.UI;
-    using ConsoleLib.Console;
+    using XRL.World;
     using Qud.UI;
 
     public class CleverGirl_Popup {

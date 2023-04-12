@@ -1,10 +1,11 @@
 
-namespace XRL.World.CleverGirl {
+namespace CleverGirl.Menus {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using XRL.World.Parts;
-    using Options = XRL.World.CleverGirl.Globals.Options;
+    using XRL.World;
+    using CleverGirl.Parts;
+    using Options = Globals.Options;
 
 
     public class CleverGirl_MainMenu {

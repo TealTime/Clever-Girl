@@ -1,8 +1,10 @@
 
-namespace XRL.World.CleverGirl {
+namespace CleverGirl.Menus {
     using System.Collections.Generic;
     using System.Linq;
-    using XRL.World.Parts;
+    using XRL;
+    using XRL.World;
+    using CleverGirl.Parts;
 
     public class CleverGirl_BehaviorsMenu {
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {

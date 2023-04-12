@@ -1,9 +1,11 @@
-namespace XRL.World.Parts.CleverGirl {
+namespace CleverGirl.Patches {
     using HarmonyLib;
     using System;
     using System.Collections.Generic;
     using System.Reflection.Emit;
     using XRL.UI;
+    using XRL.World;
+    using XRL.World.Parts;
     using XRL.World.Effects;
 
     [HarmonyPatch(typeof(Spraybottle), "HandleEvent", new Type[] { typeof(InventoryActionEvent) })]

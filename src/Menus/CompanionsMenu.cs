@@ -1,10 +1,11 @@
-namespace XRL.World.CleverGirl {
+namespace CleverGirl.Menus {
+    using HarmonyLib;
+    using ConsoleLib.Console;
     using System.Collections.Generic;
+    using System.Reflection;
+    using XRL;
     using XRL.World;
     using XRL.Rules;
-    using HarmonyLib;
-    using System.Reflection;
-    using ConsoleLib.Console;
 
     public static class CleverGirl_CompanionsMenu {
         public static void OpenMenu() {

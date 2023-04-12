@@ -1,8 +1,9 @@
 
-namespace XRL.World.CleverGirl {
+namespace CleverGirl {
     using System.Collections.Generic;
     using Occult.Engine.CodeGeneration;
     using XRL.World.Effects;
+    using XRL.World;
 
     [GenerateMinEventDispatchPartials]
     public class CleverGirl_MenuSelectEvent : IActOnItemEvent {

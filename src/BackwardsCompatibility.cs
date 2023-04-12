@@ -2,7 +2,7 @@
 ///     A.) beta/alpha have changed something that, if fixed, will break on stable.
 ///     B.) A Clever Girl change could break pre-existing saves.
 
-namespace XRL.World.CleverGirl.BackwardsCompatibility {
+namespace CleverGirl.BackwardsCompatibility {
     using System.Reflection;
     using XRL.World.Anatomy;
 

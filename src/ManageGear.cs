@@ -1,15 +1,16 @@
 // equipment screen logic copied and modified from Caves of Qud's EquipmentScreen.cs
 
-namespace XRL.World.CleverGirl {
+namespace CleverGirl {
     using ConsoleLib.Console;
     using Qud.API;
     using System.Collections.Generic;
     using XRL.Core;
     using XRL.Language;
     using XRL.UI;
+    using XRL.World;
     using XRL.World.Parts;
     using XRL.World.Anatomy;
-    using XRL.World.CleverGirl.BackwardsCompatibility;
+    using CleverGirl.BackwardsCompatibility;
 
     public static class CleverGirl_ManageGear {
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {

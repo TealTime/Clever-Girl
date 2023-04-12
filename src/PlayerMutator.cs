@@ -2,7 +2,7 @@ namespace CleverGirl {
     using XRL;
     using XRL.Core;
     using XRL.World;
-    using XRL.World.Parts;
+    using CleverGirl.Parts;
 
     [PlayerMutator]
     [HasCallAfterGameLoaded]

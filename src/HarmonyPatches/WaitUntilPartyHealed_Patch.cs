@@ -1,9 +1,11 @@
-namespace XRL.World.CleverGirl {
+namespace CleverGirl.Patches {
     using HarmonyLib;
     using System.Collections.Generic;
     using System.Reflection.Emit;
+    using XRL;
     using XRL.Core;
-    using XRL.World.Parts;
+    using XRL.World;
+    using CleverGirl.Parts;
 
     [HarmonyPatch(typeof(XRLCore), "PlayerTurn")]
     public static class XRLCore_PlayerTurn_Patch {

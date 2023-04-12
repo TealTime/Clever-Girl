@@ -1,11 +1,14 @@
-namespace XRL.World.Parts {
+namespace CleverGirl.Parts {
     using System;
     using System.Collections.Generic;
+    using XRL;
     using XRL.UI;
+    using XRL.World;
     using XRL.World.Capabilities;
-    using XRL.World.CleverGirl;
-    using XRL.World.Parts.CleverGirl;
-    using Options = XRL.World.CleverGirl.Globals.Options;
+    using XRL.World.Parts;
+    using CleverGirl;
+    using CleverGirl.Menus;
+    using Options = Globals.Options;
 
     [Serializable]
     public class CleverGirl_EventListener : CleverGirl_INoSavePart {

@@ -1,4 +1,4 @@
-namespace XRL.World.CleverGirl {
+namespace CleverGirl {
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
@@ -8,11 +8,12 @@ namespace XRL.World.CleverGirl {
     using Qud.API;
     using XRL.Rules;
     using XRL.UI;
+    using XRL.World;
     using XRL.World.Effects;
     using XRL.World.Parts;
     using XRL.World.Parts.Mutation;
     using XRL.World.Skills.Cooking;
-    using Options = XRL.World.CleverGirl.Globals.Options;
+    using Options = Globals.Options;
 
     public static class CleverGirl_Feed {
         // InventoryAction options

@@ -1,4 +1,4 @@
-namespace XRL.World.CleverGirl {
+namespace CleverGirl {
     using System.Collections.Generic;
     using System.Linq;
     using ConsoleLib.Console;

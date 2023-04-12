@@ -1,7 +1,9 @@
-namespace XRL.World.Parts.CleverGirl {
+namespace CleverGirl.Patches {
     using HarmonyLib;
     using System;
+    using XRL;
     using XRL.UI;
+    using XRL.World;
     using XRL.World.Effects;
 
     public static class Helpers {

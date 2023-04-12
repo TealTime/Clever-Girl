@@ -1,14 +1,16 @@
-namespace XRL.World.Parts {
+namespace CleverGirl.Parts {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using XRL.World.AI.GoalHandlers;
-    using XRL.World.CleverGirl;
-    using XRL.World.CleverGirl.BackwardsCompatibility;
-    using XRL.World.CleverGirl.Overloads;
+    using CleverGirl;
+    using CleverGirl.BackwardsCompatibility;
+    using CleverGirl.Menus.Overloads;
+    using XRL.World;
     using XRL.World.Anatomy;
+    using XRL.World.Parts;
     using Qud.API;
-    using Options = XRL.World.CleverGirl.Globals.Options;
+    using Options = Globals.Options;
 
     [Serializable]
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
