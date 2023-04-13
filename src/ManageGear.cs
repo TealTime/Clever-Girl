@@ -91,8 +91,9 @@ namespace CleverGirl {
                                "[ {{W|Cybernetics}} ]");
                     _ = screenBuffer.Goto(60, 0)
                         .Write(" {{W|ESC}} or {{W|5}} to exit ");
+                    // Abstract body parts (IE: floating nearby) can't be set as primary limb
                     _ = screenBuffer.Goto(25, 24)
-                        .Write(CanChangePrimaryLimb && !relevantBodyParts[selectedIndex].Abstract ?
+                        .Write(CanChangePrimaryLimb && (!relevantBodyParts[selectedIndex].Abstract || !relevantBodyParts[selectedIndex].Extrinsic) ?
                             "[{{W|Tab}} - Set primary limb]" :
                             "[{{K|Tab - Set primary limb}}]");
                     var rowCount = 22;
@@ -224,13 +225,18 @@ namespace CleverGirl {
                                 CacheValid = false;
                             }
                         } else if (screenTab != ScreenTab.Cybernetics && keys == Keys.Tab) {
+                            Popup.Show("Tab Pressed");
                             if (!CanChangePrimaryLimb) {
                                 Popup.Show(Companion.The + Companion.ShortDisplayName + " can't switch primary limbs in combat.");
-                            } else if (relevantBodyParts[selectedIndex].Abstract) {
-                                Popup.Show("This body part cannot be set as " + Companion.its + " primary.");
+                            } else if (relevantBodyParts[selectedIndex].Abstract || relevantBodyParts[selectedIndex].Extrinsic) {
+                                Popup.Show("This body part is abstract and cannot be set as a primary limb.");
                             } else if (!CleverGirl_BackwardsCompatibility.IsPreferredPrimary(relevantBodyParts[selectedIndex])) {
                                 relevantBodyParts[selectedIndex].SetAsPreferredDefault();
                                 Changed = true;
+                            } else {
+                                // Even if the part we're trying to change is already preferred primary, tell Qud to recalculate
+                                // This is a workaround for when Primary and Preferred Primary are out of sync.
+                                relevantBodyParts[selectedIndex].ParentBody.RecalculateFirsts();
                             }
                         } else {
                             if (keys == Keys.Enter) {

@@ -350,8 +350,8 @@ namespace CleverGirl.Parts {
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: menuOptions.FindAll(o => o.Selected).Select(o => menuOptions.IndexOf(o)).ToArray(),
-                LockedOptions: menuOptions.FindAll(o => o.Locked).Select(o => menuOptions.IndexOf(o)).ToArray()
+                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray(),
+                LockedOptions: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Locked).ToArray()
             );
 
             // Process selections as they happen until menu is closed
@@ -363,30 +363,43 @@ namespace CleverGirl.Parts {
                     if (result.Index >= mutations.Count) {
                         continue;
                     }
-                    changed |= Utility.EditStringPropertyCollection(ParentObject, FOCUSINGMUTATIONS_PROPERTY, mutations[result.Index], result.Value);
+                    changed |= Utility.EditStringPropertyCollection(ParentObject,
+                                                                    FOCUSINGMUTATIONS_PROPERTY,
+                                                                    mutations[result.Index],
+                                                                    result.Value);
                 }
             }
-            OnMenuExit();  // Spend MP and do some house keeping
+
+            // Update companion and followers based on the results of the menu
+            if (FocusingMutations.Count > 0 || WantNewMutations || FollowersWantNewMutations) {
+                HeyGuysTheBossJustGaveUsTheGreenLightLetsGoToTown();
+            } else {
+                HeyGuysTheBossJustTookAwayOurMutationPrivilegesWhatAnAwfulBoss();
+            }
 
             return changed;
         }
 
-        public void OnMenuExit() {
-            if (FocusingMutations.Count > 0 || WantNewMutations || FollowersWantNewMutations) {
-                // spend any MP we have if relevant
-                SpendMP();
-                foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                    var part = follower.RequirePart<CleverGirl_AIManageMutations>();
-                    part.WantNewMutations = FollowersWantNewMutations;
-                    part.FocusingMutations = FocusingMutations;
-                    part.SpendMP();
-                }
-            } else {
-                // don't bother listening if there's nothing to hear
-                ParentObject.RemovePart<CleverGirl_AIManageMutations>();
-                foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                    follower.RemovePart<CleverGirl_AIManageMutations>();
-                }
+        /// <summary>
+        /// Start spending mutation points if applicable after menu has exited.
+        /// </summary>
+        private void HeyGuysTheBossJustGaveUsTheGreenLightLetsGoToTown() {
+            SpendMP();
+            foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
+                var part = follower.RequirePart<CleverGirl_AIManageMutations>();
+                part.WantNewMutations = FollowersWantNewMutations;
+                part.FocusingMutations = FocusingMutations;
+                part.SpendMP();
+            }
+        }
+
+        /// <summary>
+        /// Stop managing mutations for the companion and any followers
+        /// </summary>
+        private void HeyGuysTheBossJustTookAwayOurMutationPrivilegesWhatAnAwfulBoss() {
+            ParentObject.RemovePart<CleverGirl_AIManageMutations>();
+            foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
+                follower.RemovePart<CleverGirl_AIManageMutations>();
             }
         }
     }

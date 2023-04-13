@@ -3,6 +3,7 @@ namespace CleverGirl.Parts {
     using System.Collections.Generic;
     using System.Linq;
     using CleverGirl;
+    using CleverGirl.Menus;
     using CleverGirl.Menus.Overloads;
     using XRL;
     using XRL.World;
@@ -78,8 +79,7 @@ namespace CleverGirl.Parts {
         }
 
         public bool ManageAttributesMenu() {
-            var optionNames = new List<string>(Attributes.Count);
-            var optionHotkeys = new List<char>(Attributes.Count);
+            var menuOptions = new List<MenuOption>(Attributes.Count);
             var initiallySelectedOptions = new List<int>(Attributes.Count);
 
             foreach (var attr in Attributes) {
@@ -91,55 +91,33 @@ namespace CleverGirl.Parts {
                              value <= 35 ? 4 :
                                            5;
 
-                optionNames.Add(attr + ": {{" + CategoryColors[bucket] + "|" + Categories[attr][bucket] + "}}");
-                optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
-                if (HoningAttributes.Contains(attr)) {
-                    int optionIndex = optionNames.Count - 1;  // index that this skill will have in the menu
-                    initiallySelectedOptions.Add(optionIndex);
-                }
+                menuOptions.Add(new MenuOption(Name: attr + ": {{" + CategoryColors[bucket] + "|" + Categories[attr][bucket] + "}}",
+                                               Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
+                                               Selected: HoningAttributes.Contains(attr)));
             }
 
             // Start the menu
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
                 Intro: Options.ShowSillyText ? "Which attributes should invest my points in?" : "Select attribute focus.",
-                Options: optionNames.ToArray(),
-                Hotkeys: optionHotkeys.ToArray(),
+                Options: menuOptions.Select(o => o.Name).ToArray(),
+                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initiallySelectedOptions.ToArray()
+                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray()
             );
 
             // Process selections as they happen until menu is closed
             var changed = false;
             foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
-                changed |= ModifyProperty(Attributes[result.Index], result.Value);
+                changed |= Utility.EditStringPropertyCollection(ParentObject, 
+                                                                HONINGATTRIBUTES_PROPERTY,
+                                                                Attributes[result.Index],
+                                                                result.Value);
             }
 
             return changed;
-        }
-
-        /// <summary>
-        /// Add or remove an element from a list property
-        /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
-        /// </summary
-        private bool ModifyProperty(string element, bool add) {
-            // TODO: Make this generic as it's duplicated across 4 classes
-            List<string> property = HoningAttributes;
-            bool existedPrior = property.Contains(element);
-
-            if (add && !existedPrior) {
-                property.Add(element);
-                HoningAttributes = property;
-                return true;
-            } else if (!add && existedPrior) {
-                _ = property.Remove(element);
-                HoningAttributes = property;
-                return true;
-            }
-
-            return false;
         }
     }
 }

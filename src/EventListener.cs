@@ -98,27 +98,27 @@ namespace CleverGirl.Parts {
 
             /** AutoPickupEquipMenu Options **/
             if (E.Command == CleverGirl_BehaviorsMenu.ENABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetAutoPickupGear(E.Item, true)) {
+                if (CleverGirl_AIPickupGear.SetAutoPickupGear(E.Item, true)) {
                     CompanionDirectionEnergyCost(E.Item, 100, "Enable Auto Gear Pickup");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.DISABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetAutoPickupGear(E.Item, false)) {
+                if (CleverGirl_AIPickupGear.SetAutoPickupGear(E.Item, false)) {
                     CompanionDirectionEnergyCost(E.Item, 100, "Disable Auto Gear Pickup");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.FOLLOWER_ENABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(E.Item, true)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(true)) {
                     CompanionDirectionEnergyCost(E.Item, 100, "Enable Follower Auto Gear Pickup");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.FOLLOWER_DISABLE_PICKUP.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(E.Item, false)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().SetFollowerAutoPickupGear(false)) {
                     CompanionDirectionEnergyCost(E.Item, 100, "Disable Follower Auto Gear Pickup");
                 }
             }
             if (E.Command == CleverGirl_BehaviorsMenu.AUTO_EQUIP_EXCEPTIONS.Command && ParentObject.CheckCompanionDirection(E.Item)) {
-                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().AutoEquipExceptionsMenu(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().AutoEquipExceptionsMenu()) {
                     CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Exceptions");
                 }
             }

@@ -3,7 +3,7 @@
 ///     B.) A Clever Girl change could break pre-existing saves.
 
 namespace CleverGirl.BackwardsCompatibility {
-    using System.Reflection;
+    using XRL.UI;
     using XRL.World.Anatomy;
 
     public class CleverGirl_BackwardsCompatibility {
@@ -17,8 +17,9 @@ namespace CleverGirl.BackwardsCompatibility {
         /// </summary>
         public static bool IsPreferredPrimary(BodyPart part) {
             // TODO: Remove this once [2.0.204.65] is long considered stable.
-            FieldInfo prop = part.GetType().GetField("PreferredPrimary") ??
-                             part.GetType().GetField("PreferedPrimary");
+            bool? prop = (part.GetType().GetField("PreferredPrimary")?.GetValue(part) as bool?) ??
+                         (part.GetType().GetField("PreferedPrimary")?.GetValue(part) as bool?);
+            Popup.Show("3 " + prop ?? "null");
             if (prop == null) {
                 Utility.MaybeLog("Could not find PreferredPrimary field in BodyPart. This could be critical?");
 
@@ -26,7 +27,7 @@ namespace CleverGirl.BackwardsCompatibility {
                 // codepath below is debatively worse.
                 return false;
             }
-            return (bool)prop.GetValue(part);
+            return (bool)prop;
         }
     }
 }

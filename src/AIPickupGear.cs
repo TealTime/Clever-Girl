@@ -5,6 +5,7 @@ namespace CleverGirl.Parts {
     using XRL.World.AI.GoalHandlers;
     using CleverGirl;
     using CleverGirl.BackwardsCompatibility;
+    using CleverGirl.Menus;
     using CleverGirl.Menus.Overloads;
     using XRL.World;
     using XRL.World.Anatomy;
@@ -172,52 +173,21 @@ namespace CleverGirl.Parts {
             _ = ParentObject.pBrain.PushGoal(new MoveTo(item.CurrentCell));
         }
 
-        public bool SetAutoPickupGear(GameObject companion, bool value) {
-            bool wasEnabled = companion.HasPart(typeof(CleverGirl_AIPickupGear));
-            if (value) {
-                _ = companion.RequirePart<CleverGirl_AIPickupGear>();
-                _ = companion.RequirePart<CleverGirl_AIUnburden>(); // Anyone picking up gear should know how to unburden themself.
-                return !wasEnabled;  // If it was disabled prior: it must have changed, so expend a turn.
-            } else {
-                companion.RemovePart<CleverGirl_AIPickupGear>();
-                companion.RemovePart<CleverGirl_AIUnburden>();
-                return wasEnabled;  // If it was enabled prior: it must have changed, so expend a turn.
-            }
-        }
+        public bool AutoEquipExceptionsMenu() {
+            Utility.MaybeLog("Managing auto-equip for " + ParentObject.DisplayNameOnlyStripped);
 
-        public bool SetFollowerAutoPickupGear(GameObject companion, bool value) {
-            bool changed = false;
-            foreach (var follower in Utility.CollectFollowersOf(companion)) {
-                changed |= SetAutoPickupGear(follower, value);
-            }
-            return changed;
-        }
-
-        public bool AutoEquipExceptionsMenu(GameObject companion) {
-            Utility.MaybeLog("Managing auto-equip for " + companion.DisplayNameOnlyStripped);
-
-            // Double check whether or not the companion still has auto pickup enabled to avoid a potential NullReferenceException below
-            if (!companion.HasPart(typeof(CleverGirl_AIPickupGear))) {
-                Utility.MaybeLog("Companion doesn't have auto pickup enabled, yet the user is trying to change auto pickup behavior. This is likely a bug and shouldn't happen. Aborting!");
-                return false;
-            }
-
-            var allBodyParts = companion.Body.GetParts();
-            var optionNames = new List<string>(allBodyParts.Count);
-            var optionHotkeys = new List<char>(allBodyParts.Count);
-            var initiallySelectedOptions = new List<int>(allBodyParts.Count);
-            var lockedOptions = new List<int>();
+            var allBodyParts = ParentObject.Body.GetParts();
+            var menuOptions = new List<MenuOption>(allBodyParts.Count);
 
             foreach (var part in allBodyParts) {
-                int optionIndex = optionNames.Count;  // index that this option will have in the final menu
-
+                bool locked = false;
                 // Before creating option, make sure it's valid.
                 // Could be un-equipable in case of fungal infections, horns, TrueKin zoomy tank feet, etc.
                 if (!(part.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
-                    lockedOptions.Add(optionIndex);
+                    locked = true;
 
                     // Check if a previously tracked part is now unequippable. If so, stop tracking it.
-                    if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID.ToString())) {
+                    if (IgnoredBodyPartIDs.Contains(part.ID.ToString())) {
                         _ = Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, part.ID.ToString(), false);  // Dont set 'changed' for this as it shouldn't punish the player
                     }
                 }
@@ -225,34 +195,53 @@ namespace CleverGirl.Parts {
                 // Format and create the option
                 string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
                 string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
-                string optionText = part.Name + " : " + primary + " " + equipped;
-                optionNames.Add(optionText);
-                optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
-                if (companion.GetPart<CleverGirl_AIPickupGear>().IgnoredBodyPartIDs.Contains(part.ID.ToString())) {
-                    initiallySelectedOptions.Add(optionIndex);
-                }
+                menuOptions.Add(new MenuOption(Name: part.Name + " : " + primary + " " + equipped,
+                                               Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
+                                               Locked: locked,
+                                               Selected: IgnoredBodyPartIDs.Contains(part.ID.ToString())));
             }
 
             // Pop up a menu for the player to checklist body parts
-            var enumerableMenu = CleverGirl_Popup.YieldSeveral(
-                Title: companion.the + companion.ShortDisplayName,
+            var yieldedResults = CleverGirl_Popup.YieldSeveral(
+                Title: ParentObject.the + ParentObject.ShortDisplayName,
                 Intro: Options.ShowSillyText ? "What slots should I skip when auto-equipping?" : "Select ignored auto-equip slots",
-                Options: optionNames.ToArray(),
-                Hotkeys: optionHotkeys.ToArray(),
+                Options: menuOptions.Select(o => o.Name).ToArray(),
+                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
-                IntroIcon: companion.RenderForUI(),
+                IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initiallySelectedOptions.ToArray(),
-                LockedOptions: lockedOptions.ToArray()
+                LockedOptions: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Locked).ToArray(),
+                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray()
             );
 
             bool changed = false;
-            foreach (CleverGirl_Popup.YieldResult result in enumerableMenu) {
+            foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
                 int partID = allBodyParts[result.Index].ID;
                 changed |= Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, partID.ToString(), result.Value);
             }
 
             return changed;
+        }
+
+        public bool SetFollowerAutoPickupGear(bool value) {
+            bool changed = false;
+            foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
+                changed |= SetAutoPickupGear(follower, value);
+            }
+            return changed;
+        }
+
+        public static bool SetAutoPickupGear(GameObject creature, bool value) {
+            bool wasEnabled = creature.HasPart(typeof(CleverGirl_AIPickupGear));
+            if (value) {
+                _ = creature.RequirePart<CleverGirl_AIPickupGear>();
+                _ = creature.RequirePart<CleverGirl_AIUnburden>(); // Anyone picking up gear should know how to unburden themself.
+                return !wasEnabled;  // If it was disabled prior: it must have changed, so expend a turn.
+            } else {
+                creature.RemovePart<CleverGirl_AIPickupGear>();
+                creature.RemovePart<CleverGirl_AIUnburden>();
+                return wasEnabled;  // If it was enabled prior: it must have changed, so expend a turn.
+            }
         }
 
         /// <summary>

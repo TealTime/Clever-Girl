@@ -6,6 +6,7 @@ namespace CleverGirl.Parts {
     using XRL.World;
     using XRL.World.Skills;
     using CleverGirl;
+    using CleverGirl.Menus;
     using CleverGirl.Menus.Overloads;
     using Options = Globals.Options;
 
@@ -113,7 +114,8 @@ namespace CleverGirl.Parts {
                     }
                 }
                 if (hasAllPowers) {
-                    _ = ModifyProperty(skillName, false);  // Dont set 'changed' for this as it shouldn't punish the player
+                    // Dont set 'changed' for this as it shouldn't punish the player
+                    _ = Utility.EditStringPropertyCollection(ParentObject, LEARNINGSKILLS_PROPERTY, skillName, false);
                 }
             }
 
@@ -138,24 +140,20 @@ namespace CleverGirl.Parts {
         /// Start the Manage Skills Menu.
         ///
         /// <example>
-        /// Note to future maintainers who may or may not be as confused as me, 
-        /// the difference between a Power and a Skill is illustrated as such:
+        /// Note to future maintainers who may or may not be as confused as me on this subject: 
+        /// The difference between a Skill and a Power is illustrated as such:
         ///
-        /// [100] Skill      <-- TOP level thing you buy with SP
-        ///     [150] Power  <-- SUB level thing you buy with SP
+        /// [100] Skill      <-- Skill == the TOP level thing you'd buy with SP
+        ///     [150] Power  <-- Power == the SUB level thing you'd buy with SP
         ///     [250] Power
         /// </example>
         /// </summary
         public bool ManageSkillsMenu() {
-            var changed = false;
             var learnableSkills = new List<string>(SkillFactory.Factory.SkillList.Count);
-            var optionNames = new List<string>(SkillFactory.Factory.SkillList.Count);
-            var optionHotkeys = new List<char>(SkillFactory.Factory.SkillList.Count);
-            var initiallySelectedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
-            var lockedOptions = new List<int>(SkillFactory.Factory.SkillList.Count);
+            var menuOptions = new List<MenuOption>(SkillFactory.Factory.SkillList.Count);
 
             // Traverse all top-level skills (IE: Axe, Tactics, Acrobatics) 
-            var lockedSuffixes = new List<string>(SkillFactory.Factory.SkillList.Values.Count);
+            var unavailableSuffixes = new List<string>(SkillFactory.Factory.SkillList.Values.Count);
             foreach (var skill in SkillFactory.Factory.SkillList.Values) {
                 if (IgnoreSkills.Contains(skill.Name)) {
                     continue;
@@ -166,7 +164,7 @@ namespace CleverGirl.Parts {
                 learnableSkills.Add(skill.Name);
                 var canLearnSkill = skill.MeetsRequirements(ParentObject);
                 int learnedPowers = 0;
-                int lockedPowers = 0;
+                int unavailablePowers = 0;
                 int totalPowers = 0;
                 // Traverse all powers within a skill (IE: Hurdle, Charge, Shield Slam) 
                 foreach (var Power in skill.Powers.Values) {
@@ -182,56 +180,54 @@ namespace CleverGirl.Parts {
                     if (ParentObject.HasSkill(Power.Class)) {
                         ++learnedPowers;
                     } else if (!Power.MeetsRequirements(ParentObject)) {
-                        ++lockedPowers;
+                        ++unavailablePowers;
                     }
                     ++totalPowers;
                 }
 
                 if (!canLearnSkill && !ParentObject.HasSkill(skill.Class)) {
-                    lockedPowers = totalPowers - learnedPowers;
+                    unavailablePowers = totalPowers - learnedPowers;
                 }
-                int unlockablePowers = totalPowers - lockedPowers;
-                string text = string.Format("[{0}/{1}] {2}", learnedPowers, unlockablePowers, skill.Name);
-                lockedSuffixes.Add(lockedPowers == 0 ? "" : "{{r|(" + lockedPowers + " locked)}}");
 
-                // highlight because all skills are learned
-                int optionIndex = optionNames.Count;  // index that this skill will have in the menu
-                if (learnedPowers == totalPowers) {
-                    optionNames.Add("{{G|" + text + "}}");
-                    lockedOptions.Add(optionIndex);
-                } else {
-                    optionNames.Add(text);
-                }
-                optionHotkeys.Add(optionHotkeys.Count >= 26 ? ' ' : (char)('a' + optionHotkeys.Count));
-                if (LearningSkills.Contains(skill.Name)) {
-                    initiallySelectedOptions.Add(optionIndex);
-                }
+                // Do some quick maths and save generated string token into list for future alignment/formatting
+                int availablePowers = totalPowers - unavailablePowers;
+                string text = string.Format("[{0}/{1}] {2}", learnedPowers, availablePowers, skill.Name);
+                unavailableSuffixes.Add(unavailablePowers == 0 ? "" : "{{r|(" + unavailablePowers + " locked)}}");
+
+                menuOptions.Add(new MenuOption(Name: text,
+                                               Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
+                                               Locked: learnedPowers >= totalPowers,
+                                               Selected: LearningSkills.Contains(skill.Name)));
             }
 
-            // Handle padding of locked suffixes for options
-            int maxWidth = optionNames.Max(s => s.Length);
-            for (int i = 0; i < optionNames.Count; i++) {
-                int numPadding = maxWidth - optionNames[i].Length - 1;
+            // Pad spacing for unavailable powers string tokens to align vertically to the right of longest name.
+            int maxWidth = menuOptions.Select(o => o.Name).Max(s => s.Length);
+            for (int i = 0; i < menuOptions.Count; i++) {
+                int numPadding = maxWidth - menuOptions[i].Name.Length - 1;
                 string padding = (numPadding >= 0) ? new string('-', numPadding) : "";
-                optionNames[i] += " {{K|" + padding + "}} " + lockedSuffixes[i];
+                menuOptions[i].Name += " {{K|" + padding + "}} " + unavailableSuffixes[i];
             }
 
             // Start the menu
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
                 Intro: Options.ShowSillyText ? "What skills should I focus on learning?" : "Select skill focus.",
-                Options: optionNames.ToArray(),
-                Hotkeys: optionHotkeys.ToArray(),
+                Options: menuOptions.Select(o => o.Name).ToArray(),
+                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: initiallySelectedOptions.ToArray(),
-                LockedOptions: lockedOptions.ToArray()
+                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray(),
+                LockedOptions: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Locked).ToArray()
             );
 
             // Process selections as they happen until menu is closed
+            var changed = false;
             foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
-                changed |= ModifyProperty(learnableSkills[result.Index], result.Value);
+                changed |= Utility.EditStringPropertyCollection(ParentObject,
+                                                                LEARNINGSKILLS_PROPERTY,
+                                                                learnableSkills[result.Index],
+                                                                result.Value);
             }
 
             // If not learning any skills, stop listening for events
@@ -240,39 +236,18 @@ namespace CleverGirl.Parts {
                 foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
                     follower.RemovePart<CleverGirl_AIManageSkills>();
                 }
-            } else {
-                // spend any skill points we have saved up
-                SpendSP();
-                foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
-                    var part = follower.RequirePart<CleverGirl_AIManageSkills>();
-                    part.LearningSkills = LearningSkills;
-                    part.SpendSP();
-                }
+                return changed;
+            }
+
+            // spend any skill points we have saved up
+            SpendSP();
+            foreach (var follower in Utility.CollectFollowersOf(ParentObject)) {
+                var part = follower.RequirePart<CleverGirl_AIManageSkills>();
+                part.LearningSkills = LearningSkills;
+                part.SpendSP();
             }
 
             return changed;
-        }
-
-        /// <summary>
-        /// Add or remove an element from a list property
-        /// Probably be done in a type generic fashion but properties are being kinda nasty to me right now.
-        /// </summary
-        private bool ModifyProperty(string element, bool add) {
-            // TODO: Make this generic as it's duplicated across 4 classes
-            List<string> property = LearningSkills;
-            bool existedPrior = property.Contains(element);
-
-            if (add && !existedPrior) {
-                property.Add(element);
-                LearningSkills = property;
-                return true;
-            } else if (!add && existedPrior) {
-                _ = property.Remove(element);
-                LearningSkills = property;
-                return true;
-            }
-
-            return false;
         }
     }
 }
