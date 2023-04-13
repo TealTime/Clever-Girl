@@ -29,6 +29,7 @@ namespace CleverGirl.Patches {
             Display = "interface a companion",
             Command = "CleverGirl_Interface",
             Key = 'c',
+            PreferToHighlight = "companion",
             Valid = E => Utility.CollectNearbyCompanions(E.Actor).Any(c => c.IsTrueKin()),
         };
         public static void Postfix(GetInventoryActionsEvent E) {

@@ -100,9 +100,10 @@ namespace CleverGirl.Parts {
             }
 
             // Pad spacing for string tokens to align vertically to the right of longest name.
-            var paddedNames = Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes);
-            for (int i = 0; i < menuOptions.Count; i++) {
-                menuOptions[i].Name = paddedNames[i];
+            if (Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
+                for (int i = 0; i < menuOptions.Count; i++) {
+                    menuOptions[i].Name = paddedNames[i];
+                }
             }
 
             // Start the menu

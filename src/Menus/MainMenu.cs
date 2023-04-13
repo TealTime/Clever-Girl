@@ -11,9 +11,11 @@ namespace CleverGirl.Menus {
     public class CleverGirl_MainMenu {
         public static readonly Utility.InventoryAction ACTION = new Utility.InventoryAction {
             Name = "Clever Girl - Main Menu",
-            Display = "issue a {{inventoryhotkey|c}}lever command",
+            Display = "clever command menu",
             Command = "CleverGirl_MainMenu",
             Key = 'c',
+            PreferToHighlight = "clever",
+            Priority = 1,  // Since this is a somewhat high frequency command, give it a slight bump in priority to preserve hotkey
             Valid = Utility.InventoryAction.Adjacent,
         };
 

@@ -103,16 +103,21 @@ namespace CleverGirl {
             return left + " {{" + color + "|" + padding + "}} " + right;
         }
 
-        public static List<string> PadTwoCollections(List<string> lefts, List<string> rights, int distance = -1, char fill = '-', char color = 'K') {
-            if (lefts.Count != rights.Count) {
-                return null;
+        public static bool PadTwoCollections(List<string> lefts, List<string> rights, out List<string> paddedNames, int distance = -1, char fill = '-', char color = 'K') {
+            paddedNames = null;
+            if (lefts is null || rights is null) {
+                return false;
             }
-            var final = new List<string>(lefts.Count);
+            if (lefts.Count != rights.Count || lefts.Count <= 0) {
+                return false;
+            }
+            paddedNames = new List<string>(lefts.Count);
+
             distance = (distance == -1) ? lefts.Max(s => s.Length) + 1 : distance;
             for (int i = 0; i < lefts.Count; i++) {
-                final.Add(PadTwoStrings(lefts[i], rights[i], distance, fill, color));
+                paddedNames.Add(PadTwoStrings(lefts[i], rights[i], distance, fill, color));
             }
-            return final;
+            return true;
         }
 
         /// <summary>
@@ -190,6 +195,8 @@ namespace CleverGirl {
             public string Display;
             public string Command;
             public char Key;
+            public string PreferToHighlight = "";  // For use with conflicting hotkeys
+            public int Priority = 0;  // For use with conflicting hotkeys
             public Predicate<IInventoryActionsEvent> Valid = _ => true;
             public static bool Adjacent(IInventoryActionsEvent e) {
                 return e.Actor.CurrentCell.IsAdjacentTo(e.Object.CurrentCell);

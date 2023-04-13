@@ -18,9 +18,9 @@ namespace CleverGirl.Parts {
     public class CleverGirl_AIManageMutations : CleverGirl_INoSavePart {
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Mutations",
-            Display = "manage {{hotkey|m}}utations",
+            Display = "manage mu{{hotkey|t}}ations",
             Command = "CleverGirl_ManageMutations",
-            Key = 'm',
+            Key = 't',
             Valid = (leader, companion) => companion.PartyLeader == The.Player,
         };
         public static string PROPERTY => "CleverGirl_AIManageMutations";
@@ -156,6 +156,11 @@ namespace CleverGirl.Parts {
                     var mutations = ParentObject.GetPart<Mutations>();
                     List<MutationEntry> possibleMutations;
                     var isFollower = ParentObject.PartyLeader.HasPart(nameof(CleverGirl_AIManageMutations));
+
+                    // TealTime Note: Followers can only learn new mutations from the subset of mutations their leader has. I think
+                    // the motivations Kizby had for this were to make sure followers didn't go absolutely crazy and start rampaging
+                    // with SUPER annoying/friendly-fire mutations they chose for themselves that the player would have ordinarily 
+                    // not chosen for their own companion.
                     if (isFollower) {
                         var myMutations = ParentObject.GetPart<Mutations>()
                                                       .MutationList
@@ -203,6 +208,7 @@ namespace CleverGirl.Parts {
                         return;
                     }
 
+                    // Player chooses the companion's mutations, but not their followers' mutations
                     var choice = isFollower ? 0 : -1;
                     while (-1 == choice) {
                         choice = Popup.ShowOptionList(Options: optionNames.ToArray(),
@@ -306,19 +312,22 @@ namespace CleverGirl.Parts {
             }
 
             // Pad spacing for string tokens to align vertically to the right of longest name.
-            var paddedNames = Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes);
-            for (int i = 0; i < menuOptions.Count; i++) {
-                menuOptions[i].Name = paddedNames[i];
+            if (Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
+                for (int i = 0; i < menuOptions.Count; i++) {
+                    menuOptions[i].Name = paddedNames[i];
+                }
             }
 
             // Companion 'want new mutations'
+            var followers = Utility.CollectFollowersOf(ParentObject);
+            bool hasFollowers = followers.Any();
             {
                 bool locked = false;
                 if (ParentObject.GetPart<Mutations>().GetMutatePool().Count == 0) {
                     locked = true;
                     WantNewMutations = false;
                 }
-                var option = new MenuOption(Name: "Acquire new mutations",
+                var option = new MenuOption(Name: "Grow new mutations" + (hasFollowers ? " for myself" : ""),
                                             Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
                                             Locked: locked,
                                             Selected: WantNewMutations);
@@ -327,7 +336,6 @@ namespace CleverGirl.Parts {
             }
 
             // Follower 'want new mutations'
-            var followers = Utility.CollectFollowersOf(ParentObject);
             if (followers.Any()) {
                 // This algorithm basically boils down to the following:
                 // "If any followers do not have a mutation that their leader does have, then stop searching since there's atleast 1 mutation unlearned."
@@ -339,7 +347,7 @@ namespace CleverGirl.Parts {
                             break;
                         }
                     }
-                    var option = new MenuOption(Name: "Acquire new follower mutations",
+                    var option = new MenuOption(Name: "Cultivate the growth of my mutations in my followers",
                                                 Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
                                                 Locked: locked,
                                                 Selected: FollowersWantNewMutations);
@@ -349,9 +357,10 @@ namespace CleverGirl.Parts {
             }
 
             // Start the menu
+            string subjectVerb = followers.Any() ? "I focus my followers' and my" : "I focus my";
             var enumerableMenu = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: Options.ShowSillyText ? "Which mutations should I invest in?" : "Select mutation focus.",
+                Intro: Options.ShowSillyText ? "Where should " + subjectVerb + " genome developments?" : "Select mutation focus.",
                 Options: menuOptions.Select(o => o.Name).ToArray(),
                 Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,

@@ -35,7 +35,14 @@ namespace CleverGirl.Parts {
                 };
                 foreach (var action in actions) {
                     if (action.Valid(E)) {
-                        _ = E.AddAction(action.Name, action.Display, action.Command, Key: action.Key, FireOnActor: true, WorksAtDistance: true);
+                        _ = E.AddAction(action.Name,
+                                        action.Display,
+                                        action.Command,
+                                        Key: action.Key,
+                                        FireOnActor: true,
+                                        WorksAtDistance: true,
+                                        Priority: action.Priority,
+                                        PreferToHighlight: action.PreferToHighlight);
                     }
                 }
             }

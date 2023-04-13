@@ -33,8 +33,8 @@ namespace CleverGirl.Menus.Overloads {
             string Title = "",
             string[] Options = null,
             char[] Hotkeys = null,
-            // int Amount = -1,  // Removed 'Amount' all together as I can't find an suitable way to reconcile the edge-case of
-            //                   // initial selection state starting with too many options selected.
+            /* int Amount = -1,  /* Removed 'Amount' all together as I can't find an suitable way to reconcile the edge-case of
+                                    initial selection state starting with too many options selected.*/
             int Spacing = 0,
             string Intro = null,
             int MaxWidth = 60,
@@ -51,8 +51,8 @@ namespace CleverGirl.Menus.Overloads {
             int IconPosition = -1,
             bool ForceNewPopup = false,
             int[] InitialSelections = null,  // New optional parameter to provide starting selection state
-            int[] LockedOptions = null)      // New optional parameter to lock certain options. Might be better to instantiate
-                                             // objects if there's multiple special option types beyond just locking in future.
+            int[] LockedOptions = null)      /* New optional parameter to lock certain options. Might be better to instantiate
+                                                objects if there's multiple special option types beyond just locking in future.*/
         {
             LockedOptions = LockedOptions ?? new int[0];
             var list = (InitialSelections is null) ? new List<int>() : new List<int>(InitialSelections.Except(LockedOptions));  // Setup initializer to instead use new optional parameter if it exists

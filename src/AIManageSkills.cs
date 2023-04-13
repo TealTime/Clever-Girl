@@ -201,16 +201,17 @@ namespace CleverGirl.Parts {
                                                Selected: LearningSkills.Contains(skill.Name)));
             }
 
-            // Pad spacing for unavailable powers string tokens to align vertically to the right of longest name.
-            var paddedNames = Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes);
-            for (int i = 0; i < menuOptions.Count; i++) {
-                menuOptions[i].Name = paddedNames[i];
+            // Pad spacing for string tokens to align vertically to the right of longest name.
+            if (Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
+                for (int i = 0; i < menuOptions.Count; i++) {
+                    menuOptions[i].Name = paddedNames[i];
+                }
             }
 
             // Start the menu
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: Options.ShowSillyText ? "What skills should I focus on learning?" : "Select skill focus.",
+                Intro: Options.ShowSillyText ? "Which skills should I learn?" : "Select skill focus.",
                 Options: menuOptions.Select(o => o.Name).ToArray(),
                 Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
