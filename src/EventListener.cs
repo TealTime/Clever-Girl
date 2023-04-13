@@ -9,10 +9,13 @@ namespace CleverGirl.Parts {
     using CleverGirl;
     using CleverGirl.Menus;
     using CleverGirl.Patches;
+    using CleverGirl.Events;
     using Options = Globals.Options;
 
     [Serializable]
     public class CleverGirl_EventListener : CleverGirl_INoSavePart {
+        public static readonly string DISMISS_EVENT_COMMAND = "CleverGirl_DismissEvent";
+
         public bool RestingUntilPartyHealed;
         public override bool WantEvent(int ID, int cascade) =>
             base.WantEvent(ID, cascade) ||
@@ -121,6 +124,10 @@ namespace CleverGirl.Parts {
                 if (E.Item.RequirePart<CleverGirl_AIPickupGear>().AutoEquipExceptionsMenu()) {
                     CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Exceptions");
                 }
+            }
+            /** Misc Options **/
+            if (E.Command == DISMISS_EVENT_COMMAND) {
+                Utility.CleanCompanion(E.Item);
             }
 
             return true;

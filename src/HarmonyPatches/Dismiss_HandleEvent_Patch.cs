@@ -5,15 +5,21 @@ namespace CleverGirl.Patches {
     using XRL.UI;
     using XRL.World;
     using XRL.World.Effects;
+    using CleverGirl.Events;
+    using CleverGirl.Parts;
 
     public static class Helpers {
-        public static bool DoubleCheck(GameObject companion, GameObject Leader) {
-            if (Leader != The.Player) {
+        public static bool DoubleCheck(GameObject companion, GameObject leader) {
+            if (leader != The.Player) {
                 return true;
             }
-            return Popup.ShowYesNo(string.Format("Do you really want to dismiss {0} from {1} service?",
-                                   companion.GetDisplayName(),
-                                   Leader.its)) == DialogResult.Yes;
+            bool result = Popup.ShowYesNo(string.Format("Do you really want to dismiss {0} from {1} service?",
+                                          companion.GetDisplayName(),
+                                          leader.its)) == DialogResult.Yes;
+
+            _ = leader.HandleEvent(CleverGirl_MenuSelectEvent.FromPool(leader, companion, CleverGirl_EventListener.DISMISS_EVENT_COMMAND));
+
+            return result;
         }
     }
 

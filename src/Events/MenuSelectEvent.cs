@@ -1,5 +1,5 @@
 
-namespace CleverGirl {
+namespace CleverGirl.Events {
     using System.Collections.Generic;
     using Occult.Engine.CodeGeneration;
     using XRL.World.Effects;

@@ -225,7 +225,6 @@ namespace CleverGirl {
                                 CacheValid = false;
                             }
                         } else if (screenTab != ScreenTab.Cybernetics && keys == Keys.Tab) {
-                            Popup.Show("Tab Pressed");
                             if (!CanChangePrimaryLimb) {
                                 Popup.Show(Companion.The + Companion.ShortDisplayName + " can't switch primary limbs in combat.");
                             } else if (relevantBodyParts[selectedIndex].Abstract || relevantBodyParts[selectedIndex].Extrinsic) {
@@ -234,8 +233,9 @@ namespace CleverGirl {
                                 relevantBodyParts[selectedIndex].SetAsPreferredDefault();
                                 Changed = true;
                             } else {
-                                // Even if the part we're trying to change is already preferred primary, tell Qud to recalculate
-                                // This is a workaround for when Primary and Preferred Primary are out of sync.
+                                // Even if the part we're trying to change is already the preferred primary, tell Qud to recalculate.
+                                // This is a workaround for when Primary and Preferred Primary are out of sync, so the menu doesn't
+                                // look unresponsive. Don't set 'changed' though, as usually nothing happens here.
                                 relevantBodyParts[selectedIndex].ParentBody.RecalculateFirsts();
                             }
                         } else {

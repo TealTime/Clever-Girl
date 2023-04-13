@@ -7,6 +7,7 @@ namespace CleverGirl {
     using XRL;
     using XRL.Rules;
     using XRL.World;
+    using CleverGirl.Parts;
 
     public static class Utility {
         public static bool debug = true;
@@ -94,6 +95,20 @@ namespace CleverGirl {
 
         public static IEnumerable<GameObject> CollectFollowersOf(GameObject Leader) {
             return The.ActiveZone.FindObjects(obj => obj.IsLedBy(Leader));
+        }
+
+        /// <summary>
+        /// Removes all Clever-Girl parts from companion and followers.
+        /// Used after dismissing a companion, but honestly I'm not sure if this is desirable behavior.
+        /// </summary>
+        public static void CleanCompanion(GameObject companion) {
+            List<CleverGirl_INoSavePart> parts = companion.GetPartsDescendedFrom<CleverGirl_INoSavePart>();
+            if (parts.Count > 0) {
+                _ = companion.PartsList.RemoveAll(p => p is CleverGirl_INoSavePart);
+            }
+            foreach (var follower in CollectFollowersOf(companion)) {
+                CleanCompanion(follower);
+            }
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////

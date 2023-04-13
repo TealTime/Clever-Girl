@@ -19,7 +19,6 @@ namespace CleverGirl.BackwardsCompatibility {
             // TODO: Remove this once [2.0.204.65] is long considered stable.
             bool? prop = (part.GetType().GetField("PreferredPrimary")?.GetValue(part) as bool?) ??
                          (part.GetType().GetField("PreferedPrimary")?.GetValue(part) as bool?);
-            Popup.Show("3 " + prop ?? "null");
             if (prop == null) {
                 Utility.MaybeLog("Could not find PreferredPrimary field in BodyPart. This could be critical?");
 

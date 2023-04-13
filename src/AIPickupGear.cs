@@ -238,7 +238,11 @@ namespace CleverGirl.Parts {
                 _ = creature.RequirePart<CleverGirl_AIUnburden>(); // Anyone picking up gear should know how to unburden themself.
                 return !wasEnabled;  // If it was disabled prior: it must have changed, so expend a turn.
             } else {
-                creature.RemovePart<CleverGirl_AIPickupGear>();
+                var part = creature.GetPart<CleverGirl_AIPickupGear>();
+                if (part != null) {
+                    // "soft" removal, which leaves the stored properties intact, so we "pickup" (That was a pun. Bet you didn't pickup on that one) where we left off when reenabling.
+                    _ = creature.PartsList.Remove(part);
+                }
                 creature.RemovePart<CleverGirl_AIUnburden>();
                 return wasEnabled;  // If it was enabled prior: it must have changed, so expend a turn.
             }

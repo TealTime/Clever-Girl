@@ -111,7 +111,7 @@ namespace CleverGirl.Parts {
             // Process selections as they happen until menu is closed
             var changed = false;
             foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
-                changed |= Utility.EditStringPropertyCollection(ParentObject, 
+                changed |= Utility.EditStringPropertyCollection(ParentObject,
                                                                 HONINGATTRIBUTES_PROPERTY,
                                                                 Attributes[result.Index],
                                                                 result.Value);

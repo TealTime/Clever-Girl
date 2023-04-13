@@ -6,6 +6,7 @@ namespace CleverGirl.Menus {
     using XRL.UI;
     using XRL.World;
     using Qud.UI;
+    using CleverGirl.Events;
 
     public class CleverGirl_BasicMenu {
         public static void SetupOptions(GameObject leader,
