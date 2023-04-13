@@ -153,7 +153,7 @@ namespace CleverGirl.Parts {
             var menuOptions = new List<MenuOption>(SkillFactory.Factory.SkillList.Count);
 
             // Traverse all top-level skills (IE: Axe, Tactics, Acrobatics) 
-            var unavailableSuffixes = new List<string>(SkillFactory.Factory.SkillList.Values.Count);
+            var suffixes = new List<string>(SkillFactory.Factory.SkillList.Values.Count);
             foreach (var skill in SkillFactory.Factory.SkillList.Values) {
                 if (IgnoreSkills.Contains(skill.Name)) {
                     continue;
@@ -191,8 +191,9 @@ namespace CleverGirl.Parts {
 
                 // Do some quick maths and save generated string token into list for future alignment/formatting
                 int availablePowers = totalPowers - unavailablePowers;
-                string text = string.Format("[{0}/{1}] {2}", learnedPowers, availablePowers, skill.Name);
-                unavailableSuffixes.Add(unavailablePowers == 0 ? "" : "{{r|(" + unavailablePowers + " locked)}}");
+                string text = string.Format("[{0}/{1}] {2}", learnedPowers, availablePowers, "{{Y|" + skill.Name + "}}");
+                string need = (unavailablePowers > 1) ? "need" : "needs";
+                suffixes.Add(unavailablePowers == 0 ? "" : "{{r|[-" + unavailablePowers + "] (stats unmet)}}");
 
                 menuOptions.Add(new MenuOption(Name: text,
                                                Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
@@ -201,11 +202,9 @@ namespace CleverGirl.Parts {
             }
 
             // Pad spacing for unavailable powers string tokens to align vertically to the right of longest name.
-            int maxWidth = menuOptions.Select(o => o.Name).Max(s => s.Length);
+            var paddedNames = Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes);
             for (int i = 0; i < menuOptions.Count; i++) {
-                int numPadding = maxWidth - menuOptions[i].Name.Length - 1;
-                string padding = (numPadding >= 0) ? new string('-', numPadding) : "";
-                menuOptions[i].Name += " {{K|" + padding + "}} " + unavailableSuffixes[i];
+                menuOptions[i].Name = paddedNames[i];
             }
 
             // Start the menu

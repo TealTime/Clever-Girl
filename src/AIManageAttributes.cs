@@ -82,6 +82,8 @@ namespace CleverGirl.Parts {
             var menuOptions = new List<MenuOption>(Attributes.Count);
             var initiallySelectedOptions = new List<int>(Attributes.Count);
 
+
+            var suffixes = new List<string>();
             foreach (var attr in Attributes) {
                 var value = ParentObject.Statistics[attr].Value;
                 var bucket = value <= 6 ? 0 :
@@ -91,15 +93,22 @@ namespace CleverGirl.Parts {
                              value <= 35 ? 4 :
                                            5;
 
-                menuOptions.Add(new MenuOption(Name: attr + ": {{" + CategoryColors[bucket] + "|" + Categories[attr][bucket] + "}}",
+                suffixes.Add(" {{" + CategoryColors[bucket] + "|" + Categories[attr][bucket] + "}}");
+                menuOptions.Add(new MenuOption(Name: "{{Y|" + attr + "}}",
                                                Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
                                                Selected: HoningAttributes.Contains(attr)));
+            }
+
+            // Pad spacing for string tokens to align vertically to the right of longest name.
+            var paddedNames = Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes);
+            for (int i = 0; i < menuOptions.Count; i++) {
+                menuOptions[i].Name = paddedNames[i];
             }
 
             // Start the menu
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: Options.ShowSillyText ? "Which attributes should invest my points in?" : "Select attribute focus.",
+                Intro: Options.ShowSillyText ? "Which attributes should I train to improve?" : "Select attribute focus.",
                 Options: menuOptions.Select(o => o.Name).ToArray(),
                 Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,

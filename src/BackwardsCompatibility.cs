@@ -3,7 +3,6 @@
 ///     B.) A Clever Girl change could break pre-existing saves.
 
 namespace CleverGirl.BackwardsCompatibility {
-    using XRL.UI;
     using XRL.World.Anatomy;
 
     public class CleverGirl_BackwardsCompatibility {

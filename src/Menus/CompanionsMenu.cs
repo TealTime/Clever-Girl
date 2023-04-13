@@ -77,7 +77,7 @@ namespace CleverGirl.Menus {
             }
             HarvestFields(companionMap[The.Player]);
 
-            var selected = ShowTabularPopup("Companions", new List<List<string>>() { names, status, effects }, new List<int> { 30, 20, 20 }, icons, The.Player.pRender);
+            var selected = ShowTabularPopup("Companions", new List<List<string>>() { names, status, effects }, new List<int> { 30, 20, 20 }, icons);
             if (selected != -1) {
                 // Interact with companion, if possible
                 _ = companionList[selected].Twiddle();

@@ -97,6 +97,24 @@ namespace CleverGirl {
             return The.ActiveZone.FindObjects(obj => obj.IsLedBy(Leader));
         }
 
+        public static string PadTwoStrings(string left, string right, int distance, char fill = '-', char color = 'K') {
+            int numPadding = distance - left.Length;
+            string padding = (numPadding > 0) ? new string('-', numPadding) : "";
+            return left + " {{" + color + "|" + padding + "}} " + right;
+        }
+
+        public static List<string> PadTwoCollections(List<string> lefts, List<string> rights, int distance = -1, char fill = '-', char color = 'K') {
+            if (lefts.Count != rights.Count) {
+                return null;
+            }
+            var final = new List<string>(lefts.Count);
+            distance = (distance == -1) ? lefts.Max(s => s.Length) + 1 : distance;
+            for (int i = 0; i < lefts.Count; i++) {
+                final.Add(PadTwoStrings(lefts[i], rights[i], distance, fill, color));
+            }
+            return final;
+        }
+
         /// <summary>
         /// Removes all Clever-Girl parts from companion and followers.
         /// Used after dismissing a companion, but honestly I'm not sure if this is desirable behavior.

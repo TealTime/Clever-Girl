@@ -274,6 +274,7 @@ namespace CleverGirl.Parts {
             var menuOptionTargetPropertyMap = new Dictionary<int, string>();
 
             // Create and format mutation options
+            var suffixes = new List<string>();
             if (ParentObject.GetPart<Mutations>() is Mutations ownedMutations) {
                 foreach (var mutation in ownedMutations.MutationList) {
                     mutations.Add(mutation.Name);
@@ -285,7 +286,7 @@ namespace CleverGirl.Parts {
                         string lockReason = "";
                         if (!canLevel || maxLevel) {
                             locked = true;
-                            lockReason = !canLevel ? "(fixed)" : (maxLevel ? "(maxed)" : "(???)");
+                            lockReason = maxLevel ? "(maxed)" : "";
 
                             // Make sure property isn't focused, mostly to ensure menu doesn't show a filled, yet locked, checkbox.
                             _ = Utility.EditStringPropertyCollection(ParentObject, FOCUSINGMUTATIONS_PROPERTY, mutation.Name, false);  // Dont set 'changed' for this as it shouldn't punish the player 
@@ -295,13 +296,19 @@ namespace CleverGirl.Parts {
                         var levelAdjustString = levelAdjust == 0 ? "" :
                                                                    levelAdjust < 0 ? "{{R|-" + (-levelAdjust) + "}}" :
                                                                                      "{{G|+" + levelAdjust + "}}";
-                        var optionText = mutation.DisplayName + " (" + mutation.BaseLevel + levelAdjustString + ") " + lockReason;
-                        menuOptions.Add(new MenuOption(Name: optionText,
+                        suffixes.Add(" (" + mutation.BaseLevel + levelAdjustString + ") " + lockReason);
+                        menuOptions.Add(new MenuOption(Name: "{{Y|" + mutation.DisplayName + "}}",
                                                        Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
                                                        Locked: locked,
                                                        Selected: FocusingMutations.Contains(mutation.Name)));
                     }
                 }
+            }
+
+            // Pad spacing for string tokens to align vertically to the right of longest name.
+            var paddedNames = Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes);
+            for (int i = 0; i < menuOptions.Count; i++) {
+                menuOptions[i].Name = paddedNames[i];
             }
 
             // Companion 'want new mutations'

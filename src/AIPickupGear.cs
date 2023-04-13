@@ -195,7 +195,7 @@ namespace CleverGirl.Parts {
                 // Format and create the option
                 string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
                 string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
-                menuOptions.Add(new MenuOption(Name: part.Name + " : " + primary + " " + equipped,
+                menuOptions.Add(new MenuOption(Name: "{{Y|" + part.Name + "}} : " + primary + " " + equipped,
                                                Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
                                                Locked: locked,
                                                Selected: IgnoredBodyPartIDs.Contains(part.ID.ToString())));
