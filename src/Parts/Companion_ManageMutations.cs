@@ -1,5 +1,4 @@
 namespace CleverGirl.Parts {
-    using HarmonyLib;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -14,7 +13,6 @@ namespace CleverGirl.Parts {
     using Options = Globals.Options;
 
     [Serializable]
-    [HarmonyPatch]
     public class CleverGirl_AIManageMutations : CleverGirl_INoSavePart {
         public static readonly Utility.OptionAction ACTION = new Utility.OptionAction {
             Name = "Clever Girl - Manage Mutations",
@@ -237,41 +235,6 @@ namespace CleverGirl.Parts {
                 ParentObject.GetPart<Mutations>().LevelMutation(targetMutation, targetMutation.BaseLevel + 1);
                 _ = ParentObject.UseMP(1);
             }
-        }
-
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(BaseMutation), "RapidLevel")]
-        public static void RapidLevelInstead(int __0, ref BaseMutation __instance) {
-            // TODO: rename __0 back to Amount once the moon stair is stable
-            var Amount = __0;
-
-            // check if we're managing this creature
-            var manageMutations = __instance.ParentObject.GetPart<CleverGirl_AIManageMutations>();
-
-            if (manageMutations == null) {
-                // do nothing otherwise
-                return;
-            }
-
-            var whichKey = "RapidLevel_" + __instance.GetMutationClass();
-
-            // pre-emptively reduce by the levels this mutation will gain
-            _ = __instance.ParentObject.ModIntProperty(whichKey, -Amount);
-
-            // pick an appropriate mutation instead
-            var mutations = __instance.ParentObject.GetPart<Mutations>();
-            var allPhysicalMutations = mutations.MutationList.Where(m => m.IsPhysical() && m.CanLevel())
-                                                             .ToList()
-                                                             .Shuffle(Utility.Random(manageMutations));
-            var instead = allPhysicalMutations.Find(m => manageMutations.FocusingMutations.Contains(m.Name)) ??
-                          allPhysicalMutations[0];
-            var insteadKey = "RapidLevel_" + instead.GetMutationClass();
-            manageMutations.DidX("rapidly advance",
-                                 instead.DisplayName + " by " + XRL.Language.Grammar.Cardinal(Amount) + " ranks to rank " + (instead.Level + Amount),
-                                 "!", ColorAsGoodFor: __instance.ParentObject);
-            _ = __instance.ParentObject.ModIntProperty(insteadKey, Amount);
-
-            Utility.MaybeLog("Moved a RapidLevel from " + whichKey + " to " + instead);
         }
 
         public bool ManageMutationsMenu() {

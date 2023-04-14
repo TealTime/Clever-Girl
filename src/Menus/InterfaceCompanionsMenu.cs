@@ -1,4 +1,4 @@
-namespace CleverGirl {
+namespace CleverGirl.Menus {
     using System.Collections.Generic;
     using System.Linq;
     using ConsoleLib.Console;

@@ -1,5 +1,7 @@
-namespace XRL.World.AI.GoalHandlers {
+namespace CleverGirl.GoalHandlers {
     using System;
+    using XRL.World;
+    using XRL.World.AI;
 
     [Serializable]
     public class CleverGirl_GoPickupGear : GoalHandler {

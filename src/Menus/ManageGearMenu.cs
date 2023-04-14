@@ -1,6 +1,6 @@
 // equipment screen logic copied and modified from Caves of Qud's EquipmentScreen.cs
 
-namespace CleverGirl {
+namespace CleverGirl.Menus {
     using ConsoleLib.Console;
     using Qud.API;
     using System.Collections.Generic;

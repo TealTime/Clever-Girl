@@ -1,5 +1,5 @@
 // Global namespace holding all player selectable options pertaining to Clever-Girl.
-// Shamelessly stolen from QudUX-v2 Mod.
+// I shamelessly stole the format from QudUX-v2 Mod.
 namespace CleverGirl.Globals {
     using static XRL.UI.Options;
 

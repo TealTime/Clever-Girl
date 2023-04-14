@@ -1,13 +1,17 @@
-namespace CleverGirl.Parts {
+namespace CleverGirl.Patches {
     using HarmonyLib;
     using System;
     using System.Linq;
     using System.Collections.Generic;
     using XRL.World;
-
-    public class CleverGirl_INoSavePart : IPart { }
+    using CleverGirl.Parts;
 
     // hide any INoSaveParts so GameObject doesn't try to save them; restore after save
+    /// <summary>
+    /// Unattach and then afterwards re-attach all currently attached INoSavePart's in the GameObject being saved.
+    ///
+    /// This is done so that the game will ONLY store our saved properties, but not the INoSavePart objects themselves.
+    /// </summary>
     [HarmonyPatch(typeof(GameObject), "Save", new Type[] { typeof(SerializationWriter) })]
     public static class GameObject_Save_Patch {
         private static List<CleverGirl_INoSavePart> cachedParts;
@@ -25,21 +29,27 @@ namespace CleverGirl.Parts {
         }
     }
 
-    // attach all the parts we didn't save based on whether they have their corresponding property
+    /// <summary>
+    /// Re-attach all previously unattached INoSavePart's to the GameObject being loaded. 
+    ///
+    /// Determine which INoSavePart's to re-attach by querying the unique identifying property (UID_PROPERTY) which is 
+    /// contractually registered to the GameObject by all attached INoSavePart's.
+    /// </summary>
     [HarmonyPatch(typeof(GameObject), "Load", new Type[] { typeof(SerializationReader) })]
     public static class GameObject_Load_Patch {
-        private static List<Type> classes;
+        private static List<Type> INoSavePartDescendantClassTypes;  // Cache to speed up future loaded GameObjects
         public static void Postfix(GameObject __instance) {
-            if (classes == null) {
-                classes = AppDomain.CurrentDomain.GetAssemblies()
+            if (INoSavePartDescendantClassTypes == null) {
+                // Get the subset of defined Type's from within all of Caves of Qud's assemblies that inherit from INoSavePart
+                INoSavePartDescendantClassTypes = AppDomain.CurrentDomain.GetAssemblies()
                             .SelectMany(x => x.GetTypes())
                             .Where(x => typeof(CleverGirl_INoSavePart).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
                             .ToList();
             }
-            foreach (var clazz in classes) {
-                string prop = clazz.GetProperty("PROPERTY")?.GetValue(null) as string ?? "";
-                if (prop != "" && __instance.HasProperty(prop)) {
-                    _ = __instance.AddPart(Activator.CreateInstance(clazz) as IPart);
+            foreach (var classType in INoSavePartDescendantClassTypes) {
+                string property = classType.GetProperty("PROPERTY")?.GetValue(null) as string ?? "";
+                if (property != "" && __instance.HasProperty(property)) {
+                    _ = __instance.AddPart(Activator.CreateInstance(classType) as IPart);
                 }
             }
         }

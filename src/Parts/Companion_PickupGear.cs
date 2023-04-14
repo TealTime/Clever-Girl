@@ -7,6 +7,7 @@ namespace CleverGirl.Parts {
     using CleverGirl.BackwardsCompatibility;
     using CleverGirl.Menus;
     using CleverGirl.Menus.Overloads;
+    using CleverGirl.GoalHandlers;
     using XRL.World;
     using XRL.World.Anatomy;
     using XRL.World.Parts;
