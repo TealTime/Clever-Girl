@@ -47,6 +47,7 @@ namespace CleverGirl.Parts {
             "Set Limb",
             "Fasting Way",
             "Mind over Body",
+            "Nonlinearity",
         };
 
         public static readonly HashSet<string> CombatSkills = new HashSet<string>{
