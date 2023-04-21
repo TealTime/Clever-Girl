@@ -80,6 +80,7 @@ namespace CleverGirl.Menus {
 
 
             // Gear management menu loop
+            int lastIndex = -1;
             while (true) {
                 SetupOptions(leader, companion, allOptions, ref filteredOptions, ref optionNames, ref optionHotkeys, ref optionValidities);
                 var index = Popup.ShowOptionList(Title: Title,
@@ -90,7 +91,7 @@ namespace CleverGirl.Menus {
                                                  MaxWidth: MaxWidth,
                                                  RespectOptionNewlines: RespectOptionNewlines,
                                                  AllowEscape: AllowEscape,
-                                                 defaultSelected: defaultSelected,
+                                                 defaultSelected: (lastIndex >= 0) ? lastIndex : defaultSelected,
                                                  SpacingText: SpacingText,
                                                  onResult: onResult,
                                                  context: context,
@@ -102,13 +103,13 @@ namespace CleverGirl.Menus {
                                                  iconPosition: iconPosition,
                                                  forceNewPopup: forceNewPopup);
 
-
                 // User cancelled, abort!
                 if (index < 0) {
                     break;
                 } else if (optionValidities[index]) {
                     _ = leader.HandleEvent(CleverGirl_MenuSelectEvent.FromPool(leader, companion, filteredOptions[index].Command));
                 }
+                lastIndex = index;
             }
 
             return false;  // Navigating menus shouldn't cost player energy
