@@ -1,4 +1,3 @@
-
 namespace CleverGirl.Events {
     using System.Collections.Generic;
     using Occult.Engine.CodeGeneration;

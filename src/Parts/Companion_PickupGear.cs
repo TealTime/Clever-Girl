@@ -59,7 +59,6 @@ namespace CleverGirl.Parts {
 
             var currentShield = ParentObject.Body.GetShield();
             if (ParentObject.HasSkill("Shield")) {
-                Utility.MaybeLog("Considering shields");
                 // manually compare to our current best shield since the WornOn's might not match
                 if (FindBetterThing("Shield",
                                     go => go.HasTag("Shield") && Brain.CompareShields(go, currentShield, ParentObject) < 0,
@@ -112,7 +111,6 @@ namespace CleverGirl.Parts {
                 .Where(go => ParentObject.HasLOSTo(go))
                 .ToList();
             if (things.Count == 0) {
-                Utility.MaybeLog("No " + SearchPart + "s");
                 return false;
             }
 
@@ -121,8 +119,14 @@ namespace CleverGirl.Parts {
             things.AddRange(ParentObject.Inventory.Objects.Where(whichThings));
             things.Sort(thingComparer);
 
+            // Note: This NoEquip + NoAIEquip behavior was documented in the discord. Essentially, in certain situations companions 
+            // should NOT equip certain sensitive items. Take for example the Bey Lah questline: a companion picking up and 
+            // equipping a "bloody patch of fur" clue item would prevent the player from progressing the through the quest until 
+            // the player eventually notices that it's in their companion's inventory.
             var noEquip = ParentObject.GetPropertyOrTag("NoEquip");
             var noEquipList = string.IsNullOrEmpty(noEquip) ? null : new List<string>(noEquip.CachedCommaExpansion());
+
+            // Don't auto-pickup for a bodypart if it has a better alternative already in companion's inventory
             var ignoreParts = new List<BodyPart>();
 
             foreach (var thing in things) {
@@ -241,7 +245,7 @@ namespace CleverGirl.Parts {
             } else {
                 var part = creature.GetPart<CleverGirl_AIPickupGear>();
                 if (part != null) {
-                    // "soft" removal, which leaves the stored properties intact, so we "pickup" (That was a pun. Bet you didn't pickup on that one) where we left off when reenabling.
+                    // "soft" removal, which leaves the stored properties intact, so we "pickup" (HA!) where we left off when reenabling.
                     _ = creature.PartsList.Remove(part);
                 }
                 creature.RemovePart<CleverGirl_AIUnburden>();

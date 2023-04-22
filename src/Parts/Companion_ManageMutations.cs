@@ -155,10 +155,10 @@ namespace CleverGirl.Parts {
                     List<MutationEntry> possibleMutations;
                     var isFollower = ParentObject.PartyLeader.HasPart(nameof(CleverGirl_AIManageMutations));
 
-                    // TealTime Note: Followers can only learn new mutations from the subset of mutations their leader has. I think
-                    // the motivations Kizby had for this were to make sure followers didn't go absolutely crazy and start rampaging
-                    // with SUPER annoying/friendly-fire mutations they chose for themselves that the player would have ordinarily 
-                    // not chosen for their own companion.
+                    // Note: Followers can only learn new mutations from the subset of mutations their leader has. 
+                    // I think the motivations Kizby had for this were to make sure followers didn't go absolutely crazy and start
+                    // rampaging with SUPER annoying/friendly-fire mutations they chose for themselves that the player would have
+                    // ordinarily not chosen for their own companion.
                     if (isFollower) {
                         var myMutations = ParentObject.GetPart<Mutations>()
                                                       .MutationList
