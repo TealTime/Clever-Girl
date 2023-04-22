@@ -1,8 +1,9 @@
+.deployignore
 .editorconfig
 .git
 .gitignore
-Mods.csproj
 bin
 obj
 scripts
 omnisharp.json
+Mods.csproj
