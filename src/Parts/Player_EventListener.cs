@@ -132,6 +132,12 @@ namespace CleverGirl.Parts {
                     CompanionDirectionEnergyCost(E.Item, 100, "Set Auto Equip Exceptions");
                 }
             }
+            if (E.Command == CleverGirl_BehaviorsMenu.EQUIPMENT_PREFERENCES.Command && ParentObject.CheckCompanionDirection(E.Item)) {
+                if (E.Item.RequirePart<CleverGirl_AIPickupGear>().EquipmentPreferencesMenu()) {
+                    CompanionDirectionEnergyCost(E.Item, 100, "Set Equipment Preferences");
+                }
+            }
+
             /** Misc Options **/
             if (E.Command == DISMISS_EVENT_COMMAND) {
                 Utility.CleanCompanion(E.Item);

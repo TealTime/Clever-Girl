@@ -18,22 +18,43 @@ namespace CleverGirl.Parts {
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
         public static string PROPERTY => "CleverGirl_AIPickupGear";
         public static string IGNOREDBODYPARTIDS_PROPERTY => PROPERTY + "_IgnoredBodyPartIDs";
+        public static string EQUIPMENTPREFERENCES_PROPERTY => PROPERTY + "_EquipmentPreferences";
         public override void Register(GameObject Object) {
             _ = Object.SetIntProperty(PROPERTY, 1);
             if (!Object.HasStringProperty(IGNOREDBODYPARTIDS_PROPERTY)) {
                 Object.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, "");
             }
+            if (!Object.HasStringProperty(EQUIPMENTPREFERENCES_PROPERTY)) {
+                Object.SetStringProperty(EQUIPMENTPREFERENCES_PROPERTY, "");
+            }
         }
         public override void Remove() {
             ParentObject.RemoveIntProperty(PROPERTY);
             ParentObject.RemoveStringProperty(IGNOREDBODYPARTIDS_PROPERTY);
+            ParentObject.RemoveStringProperty(EQUIPMENTPREFERENCES_PROPERTY);
         }
 
-        // TODO: Determine whether this is actually really inefficient/unoptimized, or if I'm just falling into the root of all evil.
         public List<string> IgnoredBodyPartIDs {
             get => ParentObject.GetStringProperty(IGNOREDBODYPARTIDS_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
             set => ParentObject.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, string.Join(',', value));
         }
+
+        public List<string> EquipmentPreferences {
+            get => ParentObject.GetStringProperty(EQUIPMENTPREFERENCES_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
+            set => ParentObject.SetStringProperty(EQUIPMENTPREFERENCES_PROPERTY, string.Join(',', value));
+        }
+
+        private static readonly List<string> EquipmentTypes = new List<string>() {
+            "Axe",
+            "Cudgel",
+            "ShortBlades",
+            "LongBlades",
+            "Shield",
+            // TODO: "Bow",
+            // TODO: "Rifle",
+            // TODO: "Pistol",
+            // TODO: "HeavyWeapons",
+        };
 
         public override bool WantTurnTick() => true;
 
@@ -48,17 +69,19 @@ namespace CleverGirl.Parts {
 
             Utility.MaybeLog("Turn " + TurnNumber);
 
+            var preferred = EquipmentPreferences;
+
             // Primary weapon
             if (ParentObject.IsCombatObject() &&
                 FindBetterThing("MeleeWeapon",
-                                go => go.HasTag("MeleeWeapon"),
+                                go => go.HasTag("MeleeWeapon") && preferred.Contains(go.GetWeaponSkill()),
                                 new Brain.WeaponSorter(ParentObject),
                                 (part, thing) => part.Primary && part.Type == thing.GetPart<MeleeWeapon>()?.Slot)) {
                 return;
             }
 
             var currentShield = ParentObject.Body.GetShield();
-            if (ParentObject.HasSkill("Shield")) {
+            if (ParentObject.HasSkill("Shield") && preferred.Contains("Shield")) {
                 // manually compare to our current best shield since the WornOn's might not match
                 if (FindBetterThing("Shield",
                                     go => go.HasTag("Shield") && Brain.CompareShields(go, currentShield, ParentObject) < 0,
@@ -73,6 +96,7 @@ namespace CleverGirl.Parts {
             }
 
             // Armor
+            // TODO: Add preferences for AV/DV armor and stuff like that
             if (FindBetterThing("Armor",
                                 _ => true,
                                 new Brain.GearSorter(ParentObject),
@@ -83,7 +107,7 @@ namespace CleverGirl.Parts {
             // Additional weapons
             if (ParentObject.IsCombatObject() &&
                 FindBetterThing("MeleeWeapon",
-                                go => go.HasTag("MeleeWeapon"),
+                                go => go.HasTag("MeleeWeapon") && preferred.Contains(go.GetWeaponSkill()),
                                 new Brain.WeaponSorter(ParentObject),
                                 (part, thing) => !part.Primary &&
                                                  part.Equipped != currentShield &&
@@ -182,7 +206,7 @@ namespace CleverGirl.Parts {
             Utility.MaybeLog("Managing auto-equip for " + ParentObject.DisplayNameOnlyStripped);
 
             var allBodyParts = ParentObject.Body.GetParts();
-            var menuOptions = new List<MenuOption>(allBodyParts.Count);
+            var options = new List<MenuComponents.Option>(allBodyParts.Count);
 
             foreach (var part in allBodyParts) {
                 bool locked = false;
@@ -200,29 +224,61 @@ namespace CleverGirl.Parts {
                 // Format and create the option
                 string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
                 string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
-                menuOptions.Add(new MenuOption(Name: "{{Y|" + part.Name + "}} : " + primary + " " + equipped,
-                                               Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
-                                               Locked: locked,
-                                               Selected: IgnoredBodyPartIDs.Contains(part.ID.ToString())));
+                options.Add(new MenuComponents.Option(Name: "{{Y|" + part.Name + "}} : " + primary + " " + equipped,
+                                                      Hotkey: Utility.GetCharInAlphabet(options.Count),
+                                                      Locked: locked,
+                                                      Selected: IgnoredBodyPartIDs.Contains(part.ID.ToString())));
             }
 
             // Pop up a menu for the player to checklist body parts
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
                 Intro: Options.ShowSillyText ? "What slots should I skip when auto-equipping?" : "Select ignored auto-equip slots",
-                Options: menuOptions.Select(o => o.Name).ToArray(),
-                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
+                Options: options.Select(o => o.Name).ToArray(),
+                Hotkeys: options.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                LockedOptions: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Locked).ToArray(),
-                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray()
+                LockedOptions: Enumerable.Range(0, options.Count).Where(i => options[i].Locked).ToArray(),
+                InitialSelections: Enumerable.Range(0, options.Count).Where(i => options[i].Selected).ToArray()
             );
 
             bool changed = false;
             foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
                 int partID = allBodyParts[result.Index].ID;
                 changed |= Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, partID.ToString(), result.Value);
+            }
+
+            return changed;
+        }
+
+        public bool EquipmentPreferencesMenu() {
+            Utility.MaybeLog("Managing equipment preferences for " + ParentObject.DisplayNameOnlyStripped);
+
+            var options = new List<MenuComponents.Option>(EquipmentTypes.Count);
+
+            foreach (var type in EquipmentTypes) {
+                options.Add(new MenuComponents.Option(Name: type,
+                                                      Hotkey: Utility.GetCharInAlphabet(options.Count),
+                                                      Selected: EquipmentPreferences.Contains(type)));
+            }
+
+            // Pop up a menu for the player to checklist body parts
+            var yieldedResults = CleverGirl_Popup.YieldSeveral(
+                Title: ParentObject.the + ParentObject.ShortDisplayName,
+                Intro: Options.ShowSillyText ? "Which equipment types should I prefer to auto-equip?" : "Select preferred equipment types",
+                Options: options.Select(o => o.Name).ToArray(),
+                Hotkeys: options.Select(o => o.Hotkey).ToArray(),
+                CenterIntro: true,
+                IntroIcon: ParentObject.RenderForUI(),
+                AllowEscape: true,
+                LockedOptions: Enumerable.Range(0, options.Count).Where(i => options[i].Locked).ToArray(),
+                InitialSelections: Enumerable.Range(0, options.Count).Where(i => options[i].Selected).ToArray()
+            );
+
+            bool changed = false;
+            foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
+                changed |= Utility.EditStringPropertyCollection(ParentObject, EQUIPMENTPREFERENCES_PROPERTY, EquipmentTypes[result.Index], result.Value);
             }
 
             return changed;

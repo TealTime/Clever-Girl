@@ -53,16 +53,15 @@ namespace CleverGirl.Menus {
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
             InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
         };
-        /** TODO:
-        public static readonly Utility.OptionAction WEAPON_TYPE_PREFERENCE = new Utility.OptionAction {
-            Name = "Clever Girl - Set Weapon Type Preference",
-            Display = "Set weapon {{hotkey|t}}ype preference",
-            Command = "CleverGirl_SetWeaponTypePreference",
-            Key = 't',
+
+        public static readonly Utility.OptionAction EQUIPMENT_PREFERENCES = new Utility.OptionAction {
+            Name = "Clever Girl - Set Equipment Preferences",
+            Display = "set equipment p{{hotkey|r}}eferences",
+            Command = "CleverGirl_SetEquipmentPreferences",
+            Key = 'r',
             Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
             InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
         };
-        **/
 
         public static readonly List<Utility.OptionAction> OPTIONS = new List<Utility.OptionAction> {
             ENABLE_PICKUP,
@@ -70,6 +69,7 @@ namespace CleverGirl.Menus {
             FOLLOWER_ENABLE_PICKUP,
             FOLLOWER_DISABLE_PICKUP,
             AUTO_EQUIP_EXCEPTIONS,
+            EQUIPMENT_PREFERENCES,
         };
 
         public static bool Start(GameObject leader, GameObject companion) {
