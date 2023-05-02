@@ -8,6 +8,7 @@ namespace CleverGirl {
     using XRL.Rules;
     using XRL.World;
     using CleverGirl.Parts;
+    using Options = Globals.Options;
 
     public static class Utility {
         public static bool debug = true;
@@ -199,7 +200,7 @@ namespace CleverGirl {
             public int Priority = 0;  // For use with conflicting hotkeys
             public Predicate<IInventoryActionsEvent> Valid = _ => true;
             public static bool Adjacent(IInventoryActionsEvent e) {
-                return e.Actor.CurrentCell.IsAdjacentTo(e.Object.CurrentCell);
+                return Options.TalkFromAfar || e.Actor.CurrentCell.IsAdjacentTo(e.Object.CurrentCell);
             }
         }
 
@@ -212,7 +213,7 @@ namespace CleverGirl {
             public Func<GameObject, GameObject, bool> Valid;
             public InvalidOptionBehavior InvalidBehavior = InvalidOptionBehavior.DARKEN;
             public static bool Adjacent(GameObject leader, GameObject companion) {
-                return leader.CurrentCell.IsAdjacentTo(companion.CurrentCell);
+                return Options.TalkFromAfar || leader.CurrentCell.IsAdjacentTo(companion.CurrentCell);
             }
         }
 
