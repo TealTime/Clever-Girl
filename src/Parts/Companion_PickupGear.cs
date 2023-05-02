@@ -18,20 +18,20 @@ namespace CleverGirl.Parts {
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
         public static string PROPERTY => "CleverGirl_AIPickupGear";
         public static string IGNOREDBODYPARTIDS_PROPERTY => PROPERTY + "_IgnoredBodyPartIDs";
-        public static string EQUIPMENTPREFERENCES_PROPERTY => PROPERTY + "_EquipmentPreferences";
+        public static string IGNOREDEQUIPMENTTYPES_PROPERTY => PROPERTY + "_IgnoredEquipmentTypes";
         public override void Register(GameObject Object) {
             _ = Object.SetIntProperty(PROPERTY, 1);
             if (!Object.HasStringProperty(IGNOREDBODYPARTIDS_PROPERTY)) {
                 Object.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, "");
             }
-            if (!Object.HasStringProperty(EQUIPMENTPREFERENCES_PROPERTY)) {
-                Object.SetStringProperty(EQUIPMENTPREFERENCES_PROPERTY, "");
+            if (!Object.HasStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY)) {
+                Object.SetStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY, "");
             }
         }
         public override void Remove() {
             ParentObject.RemoveIntProperty(PROPERTY);
             ParentObject.RemoveStringProperty(IGNOREDBODYPARTIDS_PROPERTY);
-            ParentObject.RemoveStringProperty(EQUIPMENTPREFERENCES_PROPERTY);
+            ParentObject.RemoveStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY);
         }
 
         public List<string> IgnoredBodyPartIDs {
@@ -39,21 +39,24 @@ namespace CleverGirl.Parts {
             set => ParentObject.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, string.Join(',', value));
         }
 
-        public List<string> EquipmentPreferences {
-            get => ParentObject.GetStringProperty(EQUIPMENTPREFERENCES_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
-            set => ParentObject.SetStringProperty(EQUIPMENTPREFERENCES_PROPERTY, string.Join(',', value));
+        public List<string> IgnoredEquipmentTypes {
+            get => ParentObject.GetStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
+            set => ParentObject.SetStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY, string.Join(',', value));
         }
 
-        private static readonly List<string> EquipmentTypes = new List<string>() {
+        private static readonly List<string> EQUIPMENT_TYPES = new List<string>() {
             "Axe",
             "Cudgel",
             "ShortBlades",
             "LongBlades",
             "Shield",
-            // TODO: "Bow",
-            // TODO: "Rifle",
-            // TODO: "Pistol",
-            // TODO: "HeavyWeapons",
+            /* TODO: Ranged weapon types
+             * "Bow",
+             * "Rifle",
+             * "Pistol",
+             * "HeavyWeapons",
+             */
+            // TODO: Armor Types?
         };
 
         public override bool WantTurnTick() => true;
@@ -69,19 +72,17 @@ namespace CleverGirl.Parts {
 
             Utility.MaybeLog("Turn " + TurnNumber);
 
-            var preferred = EquipmentPreferences;
-
             // Primary weapon
             if (ParentObject.IsCombatObject() &&
                 FindBetterThing("MeleeWeapon",
-                                go => go.HasTag("MeleeWeapon") && preferred.Contains(go.GetWeaponSkill()),
+                                go => go.HasTag("MeleeWeapon") && IsEquipmentTypeAllowed(go.GetWeaponSkill()),
                                 new Brain.WeaponSorter(ParentObject),
                                 (part, thing) => part.Primary && part.Type == thing.GetPart<MeleeWeapon>()?.Slot)) {
                 return;
             }
 
             var currentShield = ParentObject.Body.GetShield();
-            if (ParentObject.HasSkill("Shield") && preferred.Contains("Shield")) {
+            if (ParentObject.HasSkill("Shield") && IsEquipmentTypeAllowed("Shield")) {
                 // manually compare to our current best shield since the WornOn's might not match
                 if (FindBetterThing("Shield",
                                     go => go.HasTag("Shield") && Brain.CompareShields(go, currentShield, ParentObject) < 0,
@@ -107,12 +108,20 @@ namespace CleverGirl.Parts {
             // Additional weapons
             if (ParentObject.IsCombatObject() &&
                 FindBetterThing("MeleeWeapon",
-                                go => go.HasTag("MeleeWeapon") && preferred.Contains(go.GetWeaponSkill()),
+                                go => go.HasTag("MeleeWeapon") && IsEquipmentTypeAllowed(go.GetWeaponSkill()),
                                 new Brain.WeaponSorter(ParentObject),
                                 (part, thing) => !part.Primary &&
                                                  part.Equipped != currentShield &&
                                                  part.Type == thing.GetPart<MeleeWeapon>()?.Slot)) {
             }
+        }
+
+        private bool IsEquipmentTypeAllowed(string type) {
+            var ignored = IgnoredEquipmentTypes;
+            if (ignored.Contains(type)) {
+                return false;
+            }
+            return true;
         }
 
         private bool FindBetterThing(string SearchPart,
@@ -151,7 +160,7 @@ namespace CleverGirl.Parts {
             var noEquipList = string.IsNullOrEmpty(noEquip) ? null : new List<string>(noEquip.CachedCommaExpansion());
 
             // Don't auto-pickup for a bodypart if it has a better alternative already in companion's inventory
-            var ignoreParts = new List<BodyPart>();
+            var hasBetterInInventory = new List<BodyPart>();
 
             foreach (var thing in things) {
                 if (noEquipList?.Contains(thing.Blueprint) ?? false) {
@@ -161,7 +170,7 @@ namespace CleverGirl.Parts {
                     continue;
                 }
                 foreach (var bodyPart in allBodyParts) {
-                    if (!whichBodyParts(bodyPart, thing) || ignoreParts.Contains(bodyPart)) {
+                    if (!whichBodyParts(bodyPart, thing) || hasBetterInInventory.Contains(bodyPart) || IgnoredBodyPartIDs.Contains(bodyPart.ID.ToString())) {
                         continue;
                     }
                     if (!(bodyPart.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
@@ -177,17 +186,13 @@ namespace CleverGirl.Parts {
                         continue;
                     }
                     if (thingComparer.Compare(thing, bodyPart.Equipped) < 0) {
-                        if (IgnoredBodyPartIDs.Contains(bodyPart.ID.ToString())) {
-                            Utility.MaybeLog("Ignoring " + thing.DisplayNameOnlyStripped + " even though its better than my " +
-                                (bodyPart.Equipped?.DisplayNameOnlyStripped ?? "nothing") + " because I'm forbidden to reequip my " + bodyPart.Name);
-                            continue;
-                        }
                         if (thing.pPhysics.InInventory == ParentObject) {
                             Utility.MaybeLog(thing.DisplayNameOnlyStripped + " in my inventory is already better than my " +
                                 (bodyPart.Equipped?.DisplayNameOnlyStripped ?? "nothing"));
-                            ignoreParts.Add(bodyPart);
+                            hasBetterInInventory.Add(bodyPart);
                             continue;
                         }
+                        Utility.MaybeLog("I'm going to go get that " + thing.DisplayNameOnlyStripped);
                         GoGet(thing);
                         return true;
                     }
@@ -198,7 +203,9 @@ namespace CleverGirl.Parts {
 
         private void GoGet(GameObject item) {
             ParentObject.pBrain.Think("I want that " + item.DisplayNameOnlyStripped);
-            _ = ParentObject.pBrain.PushGoal(new CleverGirl_GoPickupGear(item));
+
+            var forbiddenBodyParts = ParentObject.Body.GetParts().Where((bp) => IgnoredBodyPartIDs.Contains(bp.ID.ToString())).ToList();
+            _ = ParentObject.pBrain.PushGoal(new CleverGirl_GoPickupGear(item, forbiddenBodyParts));
             _ = ParentObject.pBrain.PushGoal(new MoveTo(item.CurrentCell));
         }
 
@@ -255,18 +262,18 @@ namespace CleverGirl.Parts {
         public bool EquipmentPreferencesMenu() {
             Utility.MaybeLog("Managing equipment preferences for " + ParentObject.DisplayNameOnlyStripped);
 
-            var options = new List<MenuComponents.Option>(EquipmentTypes.Count);
+            var options = new List<MenuComponents.Option>(EQUIPMENT_TYPES.Count);
 
-            foreach (var type in EquipmentTypes) {
+            foreach (var type in EQUIPMENT_TYPES) {
                 options.Add(new MenuComponents.Option(Name: type,
                                                       Hotkey: Utility.GetCharInAlphabet(options.Count),
-                                                      Selected: EquipmentPreferences.Contains(type)));
+                                                      Selected: IgnoredEquipmentTypes.Contains(type)));
             }
 
             // Pop up a menu for the player to checklist body parts
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: Options.ShowSillyText ? "Which equipment types should I prefer to auto-equip?" : "Select preferred equipment types",
+                Intro: Options.ShowSillyText ? "Which equipment types am I forbidden to auto-equip?" : "Forbid specific weapon types",
                 Options: options.Select(o => o.Name).ToArray(),
                 Hotkeys: options.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
@@ -278,7 +285,7 @@ namespace CleverGirl.Parts {
 
             bool changed = false;
             foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
-                changed |= Utility.EditStringPropertyCollection(ParentObject, EQUIPMENTPREFERENCES_PROPERTY, EquipmentTypes[result.Index], result.Value);
+                changed |= Utility.EditStringPropertyCollection(ParentObject, IGNOREDEQUIPMENTTYPES_PROPERTY, EQUIPMENT_TYPES[result.Index], result.Value);
             }
 
             return changed;
