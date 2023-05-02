@@ -4,15 +4,11 @@ namespace CleverGirl.Parts {
     using System.Linq;
     using XRL.World.AI.GoalHandlers;
     using CleverGirl;
-    using CleverGirl.BackwardsCompatibility;
-    using CleverGirl.Menus;
-    using CleverGirl.Menus.Overloads;
     using CleverGirl.GoalHandlers;
     using XRL.World;
     using XRL.World.Anatomy;
     using XRL.World.Parts;
     using Qud.API;
-    using Options = Globals.Options;
 
     [Serializable]
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
@@ -21,43 +17,10 @@ namespace CleverGirl.Parts {
         public static string IGNOREDEQUIPMENTTYPES_PROPERTY => PROPERTY + "_IgnoredEquipmentTypes";
         public override void Register(GameObject Object) {
             _ = Object.SetIntProperty(PROPERTY, 1);
-            if (!Object.HasStringProperty(IGNOREDBODYPARTIDS_PROPERTY)) {
-                Object.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, "");
-            }
-            if (!Object.HasStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY)) {
-                Object.SetStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY, "");
-            }
         }
         public override void Remove() {
             ParentObject.RemoveIntProperty(PROPERTY);
-            ParentObject.RemoveStringProperty(IGNOREDBODYPARTIDS_PROPERTY);
-            ParentObject.RemoveStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY);
         }
-
-        public List<string> IgnoredBodyPartIDs {
-            get => ParentObject.GetStringProperty(IGNOREDBODYPARTIDS_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
-            set => ParentObject.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, string.Join(',', value));
-        }
-
-        public List<string> IgnoredEquipmentTypes {
-            get => ParentObject.GetStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
-            set => ParentObject.SetStringProperty(IGNOREDEQUIPMENTTYPES_PROPERTY, string.Join(',', value));
-        }
-
-        private static readonly List<string> EQUIPMENT_TYPES = new List<string>() {
-            "Axe",
-            "Cudgel",
-            "ShortBlades",
-            "LongBlades",
-            "Shield",
-            /* TODO: Ranged weapon types
-             * "Bow",
-             * "Rifle",
-             * "Pistol",
-             * "HeavyWeapons",
-             */
-            // TODO: Armor Types?
-        };
 
         public override bool WantTurnTick() => true;
 
@@ -75,14 +38,14 @@ namespace CleverGirl.Parts {
             // Primary weapon
             if (ParentObject.IsCombatObject() &&
                 FindBetterThing("MeleeWeapon",
-                                go => go.HasTag("MeleeWeapon") && IsEquipmentTypeAllowed(go.GetWeaponSkill()),
+                                go => go.HasTag("MeleeWeapon"),
                                 new Brain.WeaponSorter(ParentObject),
                                 (part, thing) => part.Primary && part.Type == thing.GetPart<MeleeWeapon>()?.Slot)) {
                 return;
             }
 
             var currentShield = ParentObject.Body.GetShield();
-            if (ParentObject.HasSkill("Shield") && IsEquipmentTypeAllowed("Shield")) {
+            if (ParentObject.HasSkill("Shield")) {
                 // manually compare to our current best shield since the WornOn's might not match
                 if (FindBetterThing("Shield",
                                     go => go.HasTag("Shield") && Brain.CompareShields(go, currentShield, ParentObject) < 0,
@@ -108,20 +71,12 @@ namespace CleverGirl.Parts {
             // Additional weapons
             if (ParentObject.IsCombatObject() &&
                 FindBetterThing("MeleeWeapon",
-                                go => go.HasTag("MeleeWeapon") && IsEquipmentTypeAllowed(go.GetWeaponSkill()),
+                                go => go.HasTag("MeleeWeapon"),
                                 new Brain.WeaponSorter(ParentObject),
                                 (part, thing) => !part.Primary &&
                                                  part.Equipped != currentShield &&
                                                  part.Type == thing.GetPart<MeleeWeapon>()?.Slot)) {
             }
-        }
-
-        private bool IsEquipmentTypeAllowed(string type) {
-            var ignored = IgnoredEquipmentTypes;
-            if (ignored.Contains(type)) {
-                return false;
-            }
-            return true;
         }
 
         private bool FindBetterThing(string SearchPart,
@@ -170,7 +125,7 @@ namespace CleverGirl.Parts {
                     continue;
                 }
                 foreach (var bodyPart in allBodyParts) {
-                    if (!whichBodyParts(bodyPart, thing) || hasBetterInInventory.Contains(bodyPart) || IgnoredBodyPartIDs.Contains(bodyPart.ID.ToString())) {
+                    if (!whichBodyParts(bodyPart, thing) || hasBetterInInventory.Contains(bodyPart)) {
                         continue;
                     }
                     if (!(bodyPart.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
@@ -204,91 +159,8 @@ namespace CleverGirl.Parts {
         private void GoGet(GameObject item) {
             ParentObject.pBrain.Think("I want that " + item.DisplayNameOnlyStripped);
 
-            var forbiddenBodyParts = ParentObject.Body.GetParts().Where((bp) => IgnoredBodyPartIDs.Contains(bp.ID.ToString())).ToList();
-            _ = ParentObject.pBrain.PushGoal(new CleverGirl_GoPickupGear(item, forbiddenBodyParts));
+            _ = ParentObject.pBrain.PushGoal(new CleverGirl_GoPickupGear(item));
             _ = ParentObject.pBrain.PushGoal(new MoveTo(item.CurrentCell));
-        }
-
-        public bool AutoEquipExceptionsMenu() {
-            Utility.MaybeLog("Managing auto-equip for " + ParentObject.DisplayNameOnlyStripped);
-
-            var allBodyParts = ParentObject.Body.GetParts();
-            var options = new List<MenuComponents.Option>(allBodyParts.Count);
-
-            foreach (var part in allBodyParts) {
-                bool locked = false;
-                // Before creating option, make sure it's valid.
-                // Could be un-equipable in case of fungal infections, horns, TrueKin zoomy tank feet, etc.
-                if (!(part.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
-                    locked = true;
-
-                    // Check if a previously tracked part is now unequippable. If so, stop tracking it.
-                    if (IgnoredBodyPartIDs.Contains(part.ID.ToString())) {
-                        _ = Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, part.ID.ToString(), false);  // Dont set 'changed' for this as it shouldn't punish the player
-                    }
-                }
-
-                // Format and create the option
-                string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
-                string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
-                options.Add(new MenuComponents.Option(Name: "{{Y|" + part.Name + "}} : " + primary + " " + equipped,
-                                                      Hotkey: Utility.GetCharInAlphabet(options.Count),
-                                                      Locked: locked,
-                                                      Selected: IgnoredBodyPartIDs.Contains(part.ID.ToString())));
-            }
-
-            // Pop up a menu for the player to checklist body parts
-            var yieldedResults = CleverGirl_Popup.YieldSeveral(
-                Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: Options.ShowSillyText ? "What slots should I skip when auto-equipping?" : "Select ignored auto-equip slots",
-                Options: options.Select(o => o.Name).ToArray(),
-                Hotkeys: options.Select(o => o.Hotkey).ToArray(),
-                CenterIntro: true,
-                IntroIcon: ParentObject.RenderForUI(),
-                AllowEscape: true,
-                LockedOptions: Enumerable.Range(0, options.Count).Where(i => options[i].Locked).ToArray(),
-                InitialSelections: Enumerable.Range(0, options.Count).Where(i => options[i].Selected).ToArray()
-            );
-
-            bool changed = false;
-            foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
-                int partID = allBodyParts[result.Index].ID;
-                changed |= Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, partID.ToString(), result.Value);
-            }
-
-            return changed;
-        }
-
-        public bool EquipmentPreferencesMenu() {
-            Utility.MaybeLog("Managing equipment preferences for " + ParentObject.DisplayNameOnlyStripped);
-
-            var options = new List<MenuComponents.Option>(EQUIPMENT_TYPES.Count);
-
-            foreach (var type in EQUIPMENT_TYPES) {
-                options.Add(new MenuComponents.Option(Name: type,
-                                                      Hotkey: Utility.GetCharInAlphabet(options.Count),
-                                                      Selected: IgnoredEquipmentTypes.Contains(type)));
-            }
-
-            // Pop up a menu for the player to checklist body parts
-            var yieldedResults = CleverGirl_Popup.YieldSeveral(
-                Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: Options.ShowSillyText ? "Which equipment types am I forbidden to auto-equip?" : "Forbid specific weapon types",
-                Options: options.Select(o => o.Name).ToArray(),
-                Hotkeys: options.Select(o => o.Hotkey).ToArray(),
-                CenterIntro: true,
-                IntroIcon: ParentObject.RenderForUI(),
-                AllowEscape: true,
-                LockedOptions: Enumerable.Range(0, options.Count).Where(i => options[i].Locked).ToArray(),
-                InitialSelections: Enumerable.Range(0, options.Count).Where(i => options[i].Selected).ToArray()
-            );
-
-            bool changed = false;
-            foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
-                changed |= Utility.EditStringPropertyCollection(ParentObject, IGNOREDEQUIPMENTTYPES_PROPERTY, EQUIPMENT_TYPES[result.Index], result.Value);
-            }
-
-            return changed;
         }
 
         public bool SetFollowerAutoPickupGear(bool value) {
