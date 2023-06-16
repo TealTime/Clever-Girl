@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <options>
 
-  <option ID="CleverGirl_DirectingCompanionCostsEnergy" DisplayText="Commanding your companion(s) costs energy/AP" Category="Clever-Girl Mod" Type="Checkbox" Default="Yes"></option>
+  <option ID="CleverGirl_TalkFromAfar" DisplayText="Clever-Girl commands work across any distance without requiring telepathy" Category="Clever-Girl Mod" Type="Checkbox" Default="No"></option>
+  <option ID="CleverGirl_DirectingCompanionCostsEnergy" DisplayText="Clever-Girl commands costs energy/AP" Category="Clever-Girl Mod" Type="Checkbox" Default="Yes"></option>
   <option ID="CleverGirl_ShowSillyText" DisplayText="Show silly and possibly immersion breaking text dialog" Category="Clever-Girl Mod" Type="Checkbox" Default="Yes"></option>
 
 </options>

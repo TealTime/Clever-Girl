@@ -4,35 +4,22 @@ namespace CleverGirl.Parts {
     using System.Linq;
     using XRL.World.AI.GoalHandlers;
     using CleverGirl;
-    using CleverGirl.BackwardsCompatibility;
-    using CleverGirl.Menus;
-    using CleverGirl.Menus.Overloads;
     using CleverGirl.GoalHandlers;
     using XRL.World;
     using XRL.World.Anatomy;
     using XRL.World.Parts;
     using Qud.API;
-    using Options = Globals.Options;
 
     [Serializable]
     public class CleverGirl_AIPickupGear : CleverGirl_INoSavePart {
         public static string PROPERTY => "CleverGirl_AIPickupGear";
         public static string IGNOREDBODYPARTIDS_PROPERTY => PROPERTY + "_IgnoredBodyPartIDs";
+        public static string IGNOREDEQUIPMENTTYPES_PROPERTY => PROPERTY + "_IgnoredEquipmentTypes";
         public override void Register(GameObject Object) {
             _ = Object.SetIntProperty(PROPERTY, 1);
-            if (!Object.HasStringProperty(IGNOREDBODYPARTIDS_PROPERTY)) {
-                Object.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, "");
-            }
         }
         public override void Remove() {
             ParentObject.RemoveIntProperty(PROPERTY);
-            ParentObject.RemoveStringProperty(IGNOREDBODYPARTIDS_PROPERTY);
-        }
-
-        // TODO: Determine whether this is actually really inefficient/unoptimized, or if I'm just falling into the root of all evil.
-        public List<string> IgnoredBodyPartIDs {
-            get => ParentObject.GetStringProperty(IGNOREDBODYPARTIDS_PROPERTY).Split(',').Where(s => !s.IsNullOrEmpty()).ToList();
-            set => ParentObject.SetStringProperty(IGNOREDBODYPARTIDS_PROPERTY, string.Join(',', value));
         }
 
         public override bool WantTurnTick() => true;
@@ -59,7 +46,6 @@ namespace CleverGirl.Parts {
 
             var currentShield = ParentObject.Body.GetShield();
             if (ParentObject.HasSkill("Shield")) {
-                Utility.MaybeLog("Considering shields");
                 // manually compare to our current best shield since the WornOn's might not match
                 if (FindBetterThing("Shield",
                                     go => go.HasTag("Shield") && Brain.CompareShields(go, currentShield, ParentObject) < 0,
@@ -74,6 +60,7 @@ namespace CleverGirl.Parts {
             }
 
             // Armor
+            // TODO: Add preferences for AV/DV armor and stuff like that
             if (FindBetterThing("Armor",
                                 _ => true,
                                 new Brain.GearSorter(ParentObject),
@@ -112,7 +99,6 @@ namespace CleverGirl.Parts {
                 .Where(go => ParentObject.HasLOSTo(go))
                 .ToList();
             if (things.Count == 0) {
-                Utility.MaybeLog("No " + SearchPart + "s");
                 return false;
             }
 
@@ -121,9 +107,15 @@ namespace CleverGirl.Parts {
             things.AddRange(ParentObject.Inventory.Objects.Where(whichThings));
             things.Sort(thingComparer);
 
+            // Note: This NoEquip + NoAIEquip behavior was documented in the discord. Essentially, in certain situations companions 
+            // should NOT equip certain sensitive items. Take for example the Bey Lah questline: a companion picking up and 
+            // equipping a "bloody patch of fur" clue item would prevent the player from progressing the through the quest until 
+            // the player eventually notices that it's in their companion's inventory.
             var noEquip = ParentObject.GetPropertyOrTag("NoEquip");
             var noEquipList = string.IsNullOrEmpty(noEquip) ? null : new List<string>(noEquip.CachedCommaExpansion());
-            var ignoreParts = new List<BodyPart>();
+
+            // Don't auto-pickup for a bodypart if it has a better alternative already in companion's inventory
+            var hasBetterInInventory = new List<BodyPart>();
 
             foreach (var thing in things) {
                 if (noEquipList?.Contains(thing.Blueprint) ?? false) {
@@ -133,7 +125,7 @@ namespace CleverGirl.Parts {
                     continue;
                 }
                 foreach (var bodyPart in allBodyParts) {
-                    if (!whichBodyParts(bodyPart, thing) || ignoreParts.Contains(bodyPart)) {
+                    if (!whichBodyParts(bodyPart, thing) || hasBetterInInventory.Contains(bodyPart)) {
                         continue;
                     }
                     if (!(bodyPart.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
@@ -149,17 +141,13 @@ namespace CleverGirl.Parts {
                         continue;
                     }
                     if (thingComparer.Compare(thing, bodyPart.Equipped) < 0) {
-                        if (IgnoredBodyPartIDs.Contains(bodyPart.ID.ToString())) {
-                            Utility.MaybeLog("Ignoring " + thing.DisplayNameOnlyStripped + " even though its better than my " +
-                                (bodyPart.Equipped?.DisplayNameOnlyStripped ?? "nothing") + " because I'm forbidden to reequip my " + bodyPart.Name);
-                            continue;
-                        }
                         if (thing.pPhysics.InInventory == ParentObject) {
                             Utility.MaybeLog(thing.DisplayNameOnlyStripped + " in my inventory is already better than my " +
                                 (bodyPart.Equipped?.DisplayNameOnlyStripped ?? "nothing"));
-                            ignoreParts.Add(bodyPart);
+                            hasBetterInInventory.Add(bodyPart);
                             continue;
                         }
+                        Utility.MaybeLog("I'm going to go get that " + thing.DisplayNameOnlyStripped);
                         GoGet(thing);
                         return true;
                     }
@@ -170,58 +158,9 @@ namespace CleverGirl.Parts {
 
         private void GoGet(GameObject item) {
             ParentObject.pBrain.Think("I want that " + item.DisplayNameOnlyStripped);
+
             _ = ParentObject.pBrain.PushGoal(new CleverGirl_GoPickupGear(item));
             _ = ParentObject.pBrain.PushGoal(new MoveTo(item.CurrentCell));
-        }
-
-        public bool AutoEquipExceptionsMenu() {
-            Utility.MaybeLog("Managing auto-equip for " + ParentObject.DisplayNameOnlyStripped);
-
-            var allBodyParts = ParentObject.Body.GetParts();
-            var menuOptions = new List<MenuOption>(allBodyParts.Count);
-
-            foreach (var part in allBodyParts) {
-                bool locked = false;
-                // Before creating option, make sure it's valid.
-                // Could be un-equipable in case of fungal infections, horns, TrueKin zoomy tank feet, etc.
-                if (!(part.Equipped?.FireEvent("CanBeUnequipped") ?? true)) {
-                    locked = true;
-
-                    // Check if a previously tracked part is now unequippable. If so, stop tracking it.
-                    if (IgnoredBodyPartIDs.Contains(part.ID.ToString())) {
-                        _ = Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, part.ID.ToString(), false);  // Dont set 'changed' for this as it shouldn't punish the player
-                    }
-                }
-
-                // Format and create the option
-                string primary = CleverGirl_BackwardsCompatibility.IsPreferredPrimary(part) ? "{{g|[*]}}" : "";
-                string equipped = part.Equipped?.ShortDisplayName ?? "{{k|[empty]}}";
-                menuOptions.Add(new MenuOption(Name: "{{Y|" + part.Name + "}} : " + primary + " " + equipped,
-                                               Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
-                                               Locked: locked,
-                                               Selected: IgnoredBodyPartIDs.Contains(part.ID.ToString())));
-            }
-
-            // Pop up a menu for the player to checklist body parts
-            var yieldedResults = CleverGirl_Popup.YieldSeveral(
-                Title: ParentObject.the + ParentObject.ShortDisplayName,
-                Intro: Options.ShowSillyText ? "What slots should I skip when auto-equipping?" : "Select ignored auto-equip slots",
-                Options: menuOptions.Select(o => o.Name).ToArray(),
-                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
-                CenterIntro: true,
-                IntroIcon: ParentObject.RenderForUI(),
-                AllowEscape: true,
-                LockedOptions: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Locked).ToArray(),
-                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray()
-            );
-
-            bool changed = false;
-            foreach (CleverGirl_Popup.YieldResult result in yieldedResults) {
-                int partID = allBodyParts[result.Index].ID;
-                changed |= Utility.EditStringPropertyCollection(ParentObject, IGNOREDBODYPARTIDS_PROPERTY, partID.ToString(), result.Value);
-            }
-
-            return changed;
         }
 
         public bool SetFollowerAutoPickupGear(bool value) {
@@ -241,7 +180,7 @@ namespace CleverGirl.Parts {
             } else {
                 var part = creature.GetPart<CleverGirl_AIPickupGear>();
                 if (part != null) {
-                    // "soft" removal, which leaves the stored properties intact, so we "pickup" (That was a pun. Bet you didn't pickup on that one) where we left off when reenabling.
+                    // "soft" removal, which leaves the stored properties intact, so we "pickup" (HA!) where we left off when reenabling.
                     _ = creature.PartsList.Remove(part);
                 }
                 creature.RemovePart<CleverGirl_AIUnburden>();

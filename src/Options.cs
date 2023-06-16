@@ -9,5 +9,6 @@ namespace CleverGirl.Globals {
     public static class Options {
         public static bool DirectingCompanionCostsEnergy => GetOption("CleverGirl_DirectingCompanionCostsEnergy").EqualsNoCase("Yes") || string.IsNullOrEmpty(GetOption("CleverGirl_DirectingCompanionCostsEnergy"));
         public static bool ShowSillyText => GetOption("CleverGirl_ShowSillyText").EqualsNoCase("Yes") || string.IsNullOrEmpty(GetOption("CleverGirl_ShowSillyText"));
+        public static bool TalkFromAfar => GetOption("CleverGirl_TalkFromAfar").EqualsNoCase("Yes") || string.IsNullOrEmpty(GetOption("CleverGirl_TalkFromAfar"));
     }
 }

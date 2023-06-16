@@ -45,31 +45,12 @@ namespace CleverGirl.Menus {
             Valid = (leader, companion) => leader == The.Player && Utility.CollectFollowersOf(companion).Any(obj => obj.HasPart(nameof(CleverGirl_AIPickupGear))),
             InvalidBehavior = Utility.InvalidOptionBehavior.HIDE,
         };
-        public static readonly Utility.OptionAction AUTO_EQUIP_EXCEPTIONS = new Utility.OptionAction {
-            Name = "Clever Girl - Set Auto Equip Exceptions",
-            Display = "set auto pickup {{hotkey|e}}xceptions",
-            Command = "CleverGirl_SetAutoEquipExceptions",
-            Key = 'e',
-            Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
-            InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
-        };
-        /** TODO:
-        public static readonly Utility.OptionAction WEAPON_TYPE_PREFERENCE = new Utility.OptionAction {
-            Name = "Clever Girl - Set Weapon Type Preference",
-            Display = "Set weapon {{hotkey|t}}ype preference",
-            Command = "CleverGirl_SetWeaponTypePreference",
-            Key = 't',
-            Valid = (leader, companion) => leader == The.Player && companion.HasPart(typeof(CleverGirl_AIPickupGear)),
-            InvalidBehavior = Utility.InvalidOptionBehavior.DARKEN,
-        };
-        **/
 
         public static readonly List<Utility.OptionAction> OPTIONS = new List<Utility.OptionAction> {
             ENABLE_PICKUP,
             DISABLE_PICKUP,
             FOLLOWER_ENABLE_PICKUP,
             FOLLOWER_DISABLE_PICKUP,
-            AUTO_EQUIP_EXCEPTIONS,
         };
 
         public static bool Start(GameObject leader, GameObject companion) {

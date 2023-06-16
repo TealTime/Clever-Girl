@@ -155,10 +155,10 @@ namespace CleverGirl.Parts {
                     List<MutationEntry> possibleMutations;
                     var isFollower = ParentObject.PartyLeader.HasPart(nameof(CleverGirl_AIManageMutations));
 
-                    // TealTime Note: Followers can only learn new mutations from the subset of mutations their leader has. I think
-                    // the motivations Kizby had for this were to make sure followers didn't go absolutely crazy and start rampaging
-                    // with SUPER annoying/friendly-fire mutations they chose for themselves that the player would have ordinarily 
-                    // not chosen for their own companion.
+                    // Note: Followers can only learn new mutations from the subset of mutations their leader has. 
+                    // I think the motivations Kizby had for this were to make sure followers didn't go absolutely crazy and start
+                    // rampaging with SUPER annoying/friendly-fire mutations they chose for themselves that the player would have
+                    // ordinarily not chosen for their own companion.
                     if (isFollower) {
                         var myMutations = ParentObject.GetPart<Mutations>()
                                                       .MutationList
@@ -239,8 +239,8 @@ namespace CleverGirl.Parts {
 
         public bool ManageMutationsMenu() {
             var mutations = new List<string>();
-            var menuOptions = new List<MenuOption>();
-            var menuOptionTargetPropertyMap = new Dictionary<int, string>();
+            var options = new List<MenuComponents.Option>();
+            var optionTargetPropertyMap = new Dictionary<int, string>();
 
             // Create and format mutation options
             var suffixes = new List<string>();
@@ -266,18 +266,18 @@ namespace CleverGirl.Parts {
                                                                    levelAdjust < 0 ? "{{R|-" + (-levelAdjust) + "}}" :
                                                                                      "{{G|+" + levelAdjust + "}}";
                         suffixes.Add(" (" + mutation.BaseLevel + levelAdjustString + ") " + lockReason);
-                        menuOptions.Add(new MenuOption(Name: "{{Y|" + mutation.DisplayName + "}}",
-                                                       Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
-                                                       Locked: locked,
-                                                       Selected: FocusingMutations.Contains(mutation.Name)));
+                        options.Add(new MenuComponents.Option(Name: "{{Y|" + mutation.DisplayName + "}}",
+                                                              Hotkey: Utility.GetCharInAlphabet(options.Count),
+                                                              Locked: locked,
+                                                              Selected: FocusingMutations.Contains(mutation.Name)));
                     }
                 }
             }
 
             // Pad spacing for string tokens to align vertically to the right of longest name.
-            if (Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
-                for (int i = 0; i < menuOptions.Count; i++) {
-                    menuOptions[i].Name = paddedNames[i];
+            if (Utility.PadTwoCollections(options.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
+                for (int i = 0; i < options.Count; i++) {
+                    options[i].Name = paddedNames[i];
                 }
             }
 
@@ -290,12 +290,12 @@ namespace CleverGirl.Parts {
                     locked = true;
                     WantNewMutations = false;
                 }
-                var option = new MenuOption(Name: "Grow new mutations" + (hasFollowers ? " for myself" : ""),
-                                            Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
-                                            Locked: locked,
-                                            Selected: WantNewMutations);
-                menuOptionTargetPropertyMap.Add(menuOptions.Count, WANTNEWMUTATIONS_PROPERTY);
-                menuOptions.Add(option);
+                var option = new MenuComponents.Option(Name: "Grow new mutations" + (hasFollowers ? " for myself" : ""),
+                                                       Hotkey: Utility.GetCharInAlphabet(options.Count),
+                                                       Locked: locked,
+                                                       Selected: WantNewMutations);
+                optionTargetPropertyMap.Add(options.Count, WANTNEWMUTATIONS_PROPERTY);
+                options.Add(option);
             }
 
             // Follower 'want new mutations'
@@ -310,12 +310,12 @@ namespace CleverGirl.Parts {
                             break;
                         }
                     }
-                    var option = new MenuOption(Name: "Cultivate the growth of my mutations in my followers",
-                                                Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
-                                                Locked: locked,
-                                                Selected: FollowersWantNewMutations);
-                    menuOptionTargetPropertyMap.Add(menuOptions.Count, FOLLOWERSWANTNEWMUTATIONS_PROPERTY);
-                    menuOptions.Add(option);
+                    var option = new MenuComponents.Option(Name: "Cultivate the growth of my mutations in my followers",
+                                                           Hotkey: Utility.GetCharInAlphabet(options.Count),
+                                                           Locked: locked,
+                                                           Selected: FollowersWantNewMutations);
+                    optionTargetPropertyMap.Add(options.Count, FOLLOWERSWANTNEWMUTATIONS_PROPERTY);
+                    options.Add(option);
                 }
             }
 
@@ -324,19 +324,19 @@ namespace CleverGirl.Parts {
             var enumerableMenu = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
                 Intro: Options.ShowSillyText ? "Where should " + subjectVerb + " genome developments?" : "Select mutation focus.",
-                Options: menuOptions.Select(o => o.Name).ToArray(),
-                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
+                Options: options.Select(o => o.Name).ToArray(),
+                Hotkeys: options.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray(),
-                LockedOptions: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Locked).ToArray()
+                InitialSelections: Enumerable.Range(0, options.Count).Where(i => options[i].Selected).ToArray(),
+                LockedOptions: Enumerable.Range(0, options.Count).Where(i => options[i].Locked).ToArray()
             );
 
             // Process selections as they happen until menu is closed
             var changed = false;
             foreach (CleverGirl_Popup.YieldResult result in enumerableMenu) {
-                if (menuOptionTargetPropertyMap.TryGetValue(result.Index, out string targetPropertyName)) {
+                if (optionTargetPropertyMap.TryGetValue(result.Index, out string targetPropertyName)) {
                     changed |= Utility.EditIntProperty(ParentObject, targetPropertyName, result.Value);
                 } else {
                     if (result.Index >= mutations.Count) {

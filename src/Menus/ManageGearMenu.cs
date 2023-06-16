@@ -228,7 +228,7 @@ namespace CleverGirl.Menus {
                             if (!CanChangePrimaryLimb) {
                                 Popup.Show(Companion.The + Companion.ShortDisplayName + " can't switch primary limbs in combat.");
                             } else if (relevantBodyParts[selectedIndex].Abstract || relevantBodyParts[selectedIndex].Extrinsic) {
-                                Popup.Show("This body part is abstract and cannot be set as a primary limb.");
+                                Popup.Show("This cannot be set as a primary limb.");
                             } else if (!CleverGirl_BackwardsCompatibility.IsPreferredPrimary(relevantBodyParts[selectedIndex])) {
                                 relevantBodyParts[selectedIndex].SetAsPreferredDefault();
                                 Changed = true;

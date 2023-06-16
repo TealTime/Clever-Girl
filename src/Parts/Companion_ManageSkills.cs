@@ -151,7 +151,7 @@ namespace CleverGirl.Parts {
         /// </summary
         public bool ManageSkillsMenu() {
             var learnableSkills = new List<string>(SkillFactory.Factory.SkillList.Count);
-            var menuOptions = new List<MenuOption>(SkillFactory.Factory.SkillList.Count);
+            var options = new List<MenuComponents.Option>(SkillFactory.Factory.SkillList.Count);
 
             // Traverse all top-level skills (IE: Axe, Tactics, Acrobatics) 
             var suffixes = new List<string>(SkillFactory.Factory.SkillList.Values.Count);
@@ -196,16 +196,16 @@ namespace CleverGirl.Parts {
                 string need = (unavailablePowers > 1) ? "need" : "needs";
                 suffixes.Add(unavailablePowers == 0 ? "" : "{{r|[-" + unavailablePowers + "] (stats unmet)}}");
 
-                menuOptions.Add(new MenuOption(Name: text,
-                                               Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
-                                               Locked: learnedPowers >= totalPowers,
-                                               Selected: LearningSkills.Contains(skill.Name)));
+                options.Add(new MenuComponents.Option(Name: text,
+                                                      Hotkey: Utility.GetCharInAlphabet(options.Count),
+                                                      Locked: learnedPowers >= totalPowers,
+                                                      Selected: LearningSkills.Contains(skill.Name)));
             }
 
             // Pad spacing for string tokens to align vertically to the right of longest name.
-            if (Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
-                for (int i = 0; i < menuOptions.Count; i++) {
-                    menuOptions[i].Name = paddedNames[i];
+            if (Utility.PadTwoCollections(options.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
+                for (int i = 0; i < options.Count; i++) {
+                    options[i].Name = paddedNames[i];
                 }
             }
 
@@ -213,13 +213,13 @@ namespace CleverGirl.Parts {
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
                 Intro: Options.ShowSillyText ? "Which skills should I learn?" : "Select skill focus.",
-                Options: menuOptions.Select(o => o.Name).ToArray(),
-                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
+                Options: options.Select(o => o.Name).ToArray(),
+                Hotkeys: options.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray(),
-                LockedOptions: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Locked).ToArray()
+                InitialSelections: Enumerable.Range(0, options.Count).Where(i => options[i].Selected).ToArray(),
+                LockedOptions: Enumerable.Range(0, options.Count).Where(i => options[i].Locked).ToArray()
             );
 
             // Process selections as they happen until menu is closed

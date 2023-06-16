@@ -79,7 +79,7 @@ namespace CleverGirl.Parts {
         }
 
         public bool ManageAttributesMenu() {
-            var menuOptions = new List<MenuOption>(Attributes.Count);
+            var options = new List<MenuComponents.Option>(Attributes.Count);
             var initiallySelectedOptions = new List<int>(Attributes.Count);
 
 
@@ -94,15 +94,15 @@ namespace CleverGirl.Parts {
                                            5;
 
                 suffixes.Add(" {{" + CategoryColors[bucket] + "|" + Categories[attr][bucket] + "}}");
-                menuOptions.Add(new MenuOption(Name: "{{Y|" + attr + "}}",
-                                               Hotkey: Utility.GetCharInAlphabet(menuOptions.Count),
-                                               Selected: HoningAttributes.Contains(attr)));
+                options.Add(new MenuComponents.Option(Name: "{{Y|" + attr + "}}",
+                                                      Hotkey: Utility.GetCharInAlphabet(options.Count),
+                                                      Selected: HoningAttributes.Contains(attr)));
             }
 
             // Pad spacing for string tokens to align vertically to the right of longest name.
-            if (Utility.PadTwoCollections(menuOptions.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
-                for (int i = 0; i < menuOptions.Count; i++) {
-                    menuOptions[i].Name = paddedNames[i];
+            if (Utility.PadTwoCollections(options.Select(o => o.Name).ToList(), suffixes, out List<string> paddedNames)) {
+                for (int i = 0; i < options.Count; i++) {
+                    options[i].Name = paddedNames[i];
                 }
             }
 
@@ -110,12 +110,12 @@ namespace CleverGirl.Parts {
             var yieldedResults = CleverGirl_Popup.YieldSeveral(
                 Title: ParentObject.the + ParentObject.ShortDisplayName,
                 Intro: Options.ShowSillyText ? "Which attributes should I train to improve?" : "Select attribute focus.",
-                Options: menuOptions.Select(o => o.Name).ToArray(),
-                Hotkeys: menuOptions.Select(o => o.Hotkey).ToArray(),
+                Options: options.Select(o => o.Name).ToArray(),
+                Hotkeys: options.Select(o => o.Hotkey).ToArray(),
                 CenterIntro: true,
                 IntroIcon: ParentObject.RenderForUI(),
                 AllowEscape: true,
-                InitialSelections: Enumerable.Range(0, menuOptions.Count).Where(i => menuOptions[i].Selected).ToArray()
+                InitialSelections: Enumerable.Range(0, options.Count).Where(i => options[i].Selected).ToArray()
             );
 
             // Process selections as they happen until menu is closed
