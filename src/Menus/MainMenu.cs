@@ -62,7 +62,7 @@ namespace CleverGirl.Menus {
                                               Title: companion.ShortDisplayName,
                                               Intro: remark,
                                               centerIntro: true,
-                                              defaultSelected: 1,  // I like having manage gear as default option
+                                              DefaultSelected: 1,  // I like having manage gear as default option
                                               IntroIcon: companion.RenderForUI(),
                                               AllowEscape: true);
         }
