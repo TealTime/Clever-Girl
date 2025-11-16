@@ -17,7 +17,7 @@ namespace XRL.World.Parts {
 
         public override bool WantTurnTick() => true;
 
-        public override void TurnTick(long TurnNumber) {
+        public override void TurnTick(long TurnTick, int Amount) {
             var excess = ParentObject.Body.GetWeight() + ParentObject.Inventory.GetWeight() - ParentObject.GetMaxCarriedWeight();
             if (excess <= 0) {
                 return;
