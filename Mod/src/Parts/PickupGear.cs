@@ -47,7 +47,7 @@ namespace XRL.World.Parts {
 
         public override bool WantTurnTick() => true;
 
-        public override void TurnTick(long TurnNumber) {
+        public override void TurnTick(long TurnTick, int Amount) {
             if (ParentObject.IsBusy()) {
                 return;
             }
@@ -56,7 +56,7 @@ namespace XRL.World.Parts {
                 return;
             }
 
-            Utility.MaybeLog("Turn " + TurnNumber);
+            Utility.MaybeLog("Turn " + TurnTick);
 
             // Primary weapon
             if (ParentObject.IsCombatObject() &&
