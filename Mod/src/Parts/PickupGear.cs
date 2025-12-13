@@ -47,7 +47,7 @@ namespace XRL.World.Parts {
 
         public override bool WantTurnTick() => true;
 
-        public override void TurnTick(long TurnNumber) {
+        public override void TurnTick(long TurnNumber, int Amount) {
             if (ParentObject.IsBusy()) {
                 return;
             }

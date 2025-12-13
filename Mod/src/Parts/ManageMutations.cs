@@ -163,7 +163,7 @@ namespace XRL.World.Parts {
                     }
                     if (!ParentObject.IsCombatObject()) {
                         // don't offer combat mutations to NoCombat companions
-                        possibleMutations = possibleMutations.Where(m => !CombatMutations.Contains(m.DisplayName))
+                        possibleMutations = possibleMutations.Where(m => !CombatMutations.Contains(m.Name))
                                                              .ToList();
                     }
                     var valuableMutations = possibleMutations.Where(m => m.Cost > 1);
@@ -178,7 +178,7 @@ namespace XRL.World.Parts {
                         var mutation = mutationType.CreateInstance();
                         var newPartString = choices.Count != newPartIndex ? "" : "{{G|+ grow a new body part}}";
                         choices.Add(mutation);
-                        strings.Add("{{W|" + mutation.DisplayName + "}} " + newPartString +
+                        strings.Add("{{W|" + mutation.GetDisplayName() + "}} " + newPartString +
                                     " {{y|- " + mutation.GetDescription() + "}}\n" + mutation.GetLevelText(1));
                         if (choices.Count == choiceCount) {
                             break;
@@ -214,7 +214,7 @@ namespace XRL.World.Parts {
                     }
 
                     var mutationIndex = mutations.AddMutation(result, 1);
-                    DidX("gain", mutations.MutationList[mutationIndex].DisplayName, "!", UsePopup: true, ColorAsGoodFor: ParentObject);
+                    DidX("gain", mutations.MutationList[mutationIndex].GetDisplayName(), "!", UsePopup: true, ColorAsGoodFor: ParentObject);
                     if (choice == newPartIndex) {
                         _ = mutations.AddChimericBodyPart();
                     }
@@ -257,7 +257,7 @@ namespace XRL.World.Parts {
                           allPhysicalMutations[0];
             var insteadKey = "RapidLevel_" + instead.GetMutationClass();
             manageMutations.DidX("rapidly advance",
-                                 instead.DisplayName + " by " + Language.Grammar.Cardinal(Amount) + " ranks to rank " + (instead.Level + Amount),
+                                 instead.GetDisplayName() + " by " + Language.Grammar.Cardinal(Amount) + " ranks to rank " + (instead.Level + Amount),
                                  "!", ColorAsGoodFor: __instance.ParentObject);
             _ = __instance.ParentObject.ModIntProperty(insteadKey, Amount);
 
@@ -280,7 +280,7 @@ namespace XRL.World.Parts {
                     var levelAdjustString = levelAdjust == 0 ? "" :
                                                                levelAdjust < 0 ? "{{R|-" + (-levelAdjust) + "}}" :
                                                                                  "{{G|+" + levelAdjust + "}}";
-                    strings.Add(prefix + " " + Mutation.DisplayName + " (" + Mutation.BaseLevel + levelAdjustString + ")");
+                    strings.Add(prefix + " " + Mutation.GetDisplayName() + " (" + Mutation.BaseLevel + levelAdjustString + ")");
                     keys.Add(keys.Count >= 26 ? ' ' : (char)('a' + keys.Count));
                 }
             }
